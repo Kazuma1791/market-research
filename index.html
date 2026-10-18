@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>個人市場研究終端 | 15年研究員規格</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background-color: #0b0f19; color: #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    .card { background-color: #111827; border: 1px solid #1f2937; }
+    .tag-tech { background: #1e3a8a; color: #93c5fd; }
+    .tag-fund { background: #064e3b; color: #6ee7b7; }
+    .tag-news { background: #581c87; color: #d8b4fe; }
+    .tag-sent { background: #7c2d12; color: #fdba74; }
+  </style>
+</head>
+<body class="min-h-screen p-4 md:p-8">
+
+  <!-- 頂部標題與規則6聲明 -->
+  <header class="max-w-6xl mx-auto mb-6 border-b border-gray-800 pb-4">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-white tracking-tight">個人市場研究實戰看板</h1>
+        <p class="text-xs text-gray-400 mt-1">依風險報酬比（R:R）由高至低自動排序｜強制標示依據、日期、來源與失效條件</p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button onclick="filterTicker('ALL')" class="px-3 py-1.5 text-xs font-medium rounded bg-blue-600 text-white hover:bg-blue-500">全部標的</button>
+        <button onclick="filterTicker('NVDA')" class="px-3 py-1.5 text-xs font-medium rounded bg-gray-800 text-gray-300 hover:bg-gray-700">NVDA</button>
+        <button onclick="filterTicker('MU')" class="px-3 py-1.5 text-xs font-medium rounded bg-gray-800 text-gray-300 hover:bg-gray-700">MU</button>
+        <button onclick="filterTicker('TSLA')" class="px-3 py-1.5 text-xs font-medium rounded bg-gray-800 text-gray-300 hover:bg-gray-700">TSLA</button>
+      </div>
+    </div>
+
+    <!-- 免責與數據回溯聲明 -->
+    <div class="mt-4 p-3 rounded bg-gray-900/90 border border-gray-700 text-xs text-gray-300 flex flex-col gap-1">
+      <div><span class="font-semibold text-amber-400">【規則 6 聲明】</span>本網站提供的是客觀研究整理，不是投資建議，最終下單與部位風控決策由投資人自行負責。</div>
+      <div><span class="font-semibold text-blue-400">【規則 3 數據回溯基準】</span>預載價格與財務指標回溯自 2026-10-16 美股收盤公開行情（NASDAQ / NYSE 官方收盤紀錄與公司財報）。</div>
+    </div>
+  </header>
+
+  <!-- 缺漏資料補充提示區（規則2） -->
+  <section class="max-w-6xl mx-auto mb-6">
+    <div class="p-3 rounded bg-amber-950/40 border border-amber-700/60 text-xs text-amber-200">
+      <span class="font-bold">【規則 2 待補充查證清單】</span>
+      目前無未查證之推測數字。若後續分析涉及未公開之最新機構籌碼或即時盤中大單，將直接顯示：<code class="bg-black/40 px-1.5 py-0.5 rounded text-amber-300">資料不足，需要我補充：___</code>
+    </div>
+  </section>
+
+  <!-- 交易設定卡片容器 -->
+  <main id="setup-container" class="max-w-6xl mx-auto grid grid-cols-1 gap-6"></main>
+
+  <script>
+    const setups = [
+      {
+        rank: 1,
+        ticker: "NVDA",
+        name: "英偉達",
+        direction: "做多",
+        strategy: "關鍵支撐區超賣反彈",
+        entryRange: "$213.50 – $215.50（均價 $214.50）",
+        t1: "$226.00（R:R 2.30 : 1）",
+        t2: "$238.00（R:R 4.70 : 1）",
+        rrValue: 4.70,
+        stopLoss: "$209.50",
+        stopBasis: "【技術面｜2026-10-16】跌破 10/16 盤中低點 $213.32 超過 1.7%，失守 $210.00 整數關卡。",
+        source: "NASDAQ 官方收盤歷史數據（2026-10-01 至 2026-10-16）、NVDA 最新季度財報（TTM EPS $7.91）",
+        missingData: "",
+        reasons: [
+          { type: "技術面", tagClass: "tag-tech", date: "2026-10-16", text: "股價自 10/06 高點 $239.24 連續 8 個交易日回檔至 10/16 最低 $213.32（跌幅 10.83%），日線觸及超賣區後收於 $214.13，守住前波平台。" },
+          { type: "基本面", tagClass: "tag-fund", date: "2026-10-16", text: "滾動市盈率（P/E）回落至 27.07 倍（以收盤 $214.13 與 EPS $7.91 計算），處於近一年估值偏低區間。" },
+          { type: "消息面", tagClass: "tag-news", date: "2026-10-15", text: "微軟發表 Maia 300 晶片預計 2027 年才量產，短期大型資料中心算力採購結構未變。" }
+        ],
+        invalidations: [
+          "【技術面】日 K 線收盤價實體跌破 $210.00，破壞區間支撐結構。",
+          "【情緒面】反彈日成交量低於 30 日均量（1.09 億股），且於 $218.00 遭遇長上影線陰線壓制。",
+          "【消息面】晶片出口管制出現突發收緊政策或主要雲端客戶下修當季資本支出。"
+        ]
+      },
+      {
+        rank: 2,
+        ticker: "MU",
+        name: "美光科技",
+        direction: "做空",
+        strategy: "跌破千元大關後反抽承壓順勢放空",
+        entryRange: "$925.00 – $945.00（均價 $935.00）",
+        t1: "$875.00（R:R 2.00 : 1）",
+        t2: "$800.00（R:R 4.50 : 1）",
+        rrValue: 4.50,
+        stopLoss: "$965.00",
+        stopBasis: "【技術面｜2026-10-16】突破 10/13 收盤價 $953.19 上方密集成交區約 1.2%，代表單邊下跌趨勢暫緩。",
+        source: "NASDAQ 官方收盤數據（2026-10-01 收 $1,097.39、2026-10-16 收 $878.84，盤中低點 $875.00）",
+        missingData: "",
+        reasons: [
+          { type: "技術面", tagClass: "tag-tech", date: "2026-10-16", text: "自 10/01 的 $1,097.39 破位崩跌至 10/16 收盤 $878.84，單月重挫 19.92%；10/16 收近光腳陰線，5 日與 10 日均線陡峭下彎。" },
+          { type: "基本面", tagClass: "tag-fund", date: "2026-10-16", text: "滾動 P/E 為 11.82 倍，反映市場對記憶體景氣循環高點反轉之折價。" },
+          { type: "情緒面", tagClass: "tag-sent", date: "2026-10-16", text: "機構資金針對 HBM/DRAM 供需預期進行部位調節，破位後反抽皆伴隨解套賣壓。" }
+        ],
+        invalidations: [
+          "【技術面】日 K 線以大成交量長紅吞噬線直接收復 $960.00。",
+          "【消息面】三大記憶體原廠宣布聯合減產或 HBM 明年度報價上調。",
+          "【技術面】於 $875–$900 區間連續 3 個交易日縮量不破底，形成日線底背離。"
+        ]
+      },
+      {
+        rank: 3,
+        ticker: "TSLA",
+        name: "特斯拉",
+        direction: "做多",
+        strategy: "350 整數防線長下影線多頭防守",
+        entryRange: "$352.00 – $355.00（均價 $353.50）",
+        t1: "$375.00（R:R 2.87 : 1）",
+        t2: "$385.00（R:R 4.20 : 1）",
+        rrValue: 4.20,
+        stopLoss: "$346.00",
+        stopBasis: "【技術面｜2026-10-16】跌破 10/16 日線低點 $349.33 約 0.95%，代表當日低接防守買盤全數套牢。",
+        source: "NASDAQ 官方收盤數據（2026-10-16 開 $369.15、低 $349.33、收 $354.72）",
+        missingData: "",
+        reasons: [
+          { type: "技術面", tagClass: "tag-tech", date: "2026-10-16", text: "10/16 急挫至 $349.33 後拉升收於 $354.72，留 $5.39 長下影線，精準守住 10 月初起漲平台高點 $354.11。" },
+          { type: "情緒面", tagClass: "tag-sent", date: "2026-10-16", text: "自 10/09 高點 $382.70 連跌 5 日後，短線恐慌拋壓於 $350 整數關卡一次性釋放。" }
+        ],
+        invalidations: [
+          "【技術面】開盤直接跳空跌破 $349.00，長下影線支撐轉為套牢反壓。",
+          "【技術面】反彈受制於 $365.00 下方並構築下跌旗形（Bear Flag）。",
+          "【基本面】季度毛利率或交車數據低於市場共識預期。"
+        ]
+      },
+      {
+        rank: 4,
+        ticker: "NVDA",
+        name: "英偉達",
+        direction: "做空",
+        strategy: "跌深反抽遇短期均線反壓放空",
+        entryRange: "$224.50 – $227.00（均價 $225.50）",
+        t1: "$214.00（R:R 1.92 : 1）",
+        t2: "$201.00（R:R 4.08 : 1）",
+        rrValue: 4.08,
+        stopLoss: "$231.50",
+        stopBasis: "【技術面｜2026-10-16】突破 10/01 平台高點 $230.86，下降通道結構破壞。",
+        source: "NASDAQ 官方收盤數據、美國財政部 10 年期公債殖利率報價（2026-10-16 為 5.19%）",
+        missingData: "",
+        reasons: [
+          { type: "技術面", tagClass: "tag-tech", date: "2026-10-16", text: "10 月中旬跌破短中期均線形成「高點降低」下降通道，$225–$227 為 10/12–10/13 跌破之頸線反壓區。" },
+          { type: "消息面", tagClass: "tag-news", date: "2026-10-16", text: "美債 10 年期殖利率處於 5.19% 高位，壓抑高估值科技股反彈延續性。" }
+        ],
+        invalidations: [
+          "【技術面】日 K 線收盤實體站上 $231.00，且全日成交量突破 1.3 億股。",
+          "【消息面】主要 CSP 客戶宣布超預期上調下季度 AI 伺服器採購預算。"
+        ]
+      },
+      {
+        rank: 5,
+        ticker: "MU / TSLA",
+        name: "美光做多 / 特斯拉追空",
+        direction: "觀望",
+        strategy: "未達高勝率標準（淘汰設定）",
+        entryRange: "嚴禁進場",
+        t1: "無",
+        t2: "無（風報比與勝率不合格）",
+        rrValue: 0,
+        stopLoss: "無客觀停損點",
+        stopBasis: "【技術面｜2026-10-16】MU 日線收光腳大黑 K（收 $878.84）無止跌訊號；TSLA 下檔 $349.33 具長下影線強支撐，追空風報比低於 0.7 : 1。",
+        source: "NASDAQ 官方收盤數據（2026-10-16）",
+        missingData: "MU 底部機構大單承接訊號尚未出現，資料不足，需要我補充：等待日線出現止跌吞噬或底背離訊號後再行評估",
+        reasons: [
+          { type: "技術面", tagClass: "tag-tech", date: "2026-10-16", text: "MU 處於單邊主跌段，左側摸底缺乏右側確認；TSLA 於 $350 關卡呈現強烈多頭抵抗，追空極易遭軋空。" }
+        ],
+        invalidations: [
+          "【技術面】MU 出現帶量長下影線或雙底結構後，才可重新評估做多設定。",
+          "【技術面】TSLA 帶量實體跌破 $346.00 後，才可重新評估右側追空設定。"
+        ]
+      }
+    ];
+
+    function renderSetups(filter = 'ALL') {
+      const container = document.getElementById('setup-container');
+      container.innerHTML = '';
+      const filtered = setups
+        .filter(s => filter === 'ALL' || s.ticker.includes(filter))
+        .sort((a, b) => b.rrValue - a.rrValue);
+
+      filtered.forEach(item => {
+        const dirBadge = item.direction === '做多'
+          ? 'bg-emerald-900/60 text-emerald-300 border-emerald-700'
+          : item.direction === '做空'
+          ? 'bg-rose-900/60 text-rose-300 border-rose-700'
+          : 'bg-gray-800 text-gray-300 border-gray-600';
+
+        const missingHtml = item.missingData
+          ? `<div class="mt-3 p-2.5 rounded bg-amber-950/60 border border-amber-700 text-xs text-amber-300">
+               <strong>【規則 2 標示】</strong>資料不足，需要我補充：${item.missingData}
+             </div>`
+          : '';
+
+        const reasonsHtml = item.reasons.map(r => `
+          <li class="flex items-start gap-2 text-sm text-gray-300">
+            <span class="px-2 py-0.5 text-xs font-semibold rounded shrink-0 ${r.tagClass}">
+              ${r.type}｜${r.date}
+            </span>
+            <span>${r.text}</span>
+          </li>
+        `).join('');
+
+        const invHtml = item.invalidations.map(inv => `
+          <li class="text-xs text-rose-200/90 list-disc ml-4">${inv}</li>
+        `).join('');
+
+        container.innerHTML += `
+          <div class="card rounded-lg p-5 shadow-lg">
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-gray-800 pb-3 mb-4">
+              <div class="flex items-center gap-3">
+                <span class="text-xs font-mono px-2 py-1 rounded bg-gray-800 text-gray-400">排序 #${item.rank}</span>
+                <h2 class="text-lg font-bold text-white">${item.ticker}（${item.name}）— ${item.strategy}</h2>
+              </div>
+              <span class="px-3 py-1 text-xs font-bold rounded border ${dirBadge}">${item.direction}</span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4 text-xs">
+              <div class="p-3 rounded bg-gray-900 border border-gray-800">
+                <div class="text-gray-400 mb-1">建議進場區間</div>
+                <div class="text-sm font-semibold text-white">${item.entryRange}</div>
+              </div>
+              <div class="p-3 rounded bg-gray-900 border border-gray-800">
+                <div class="text-gray-400 mb-1">第一目標（T1）</div>
+                <div class="text-sm font-semibold text-emerald-400">${item.t1}</div>
+              </div>
+              <div class="p-3 rounded bg-gray-900 border border-gray-800">
+                <div class="text-gray-400 mb-1">第二目標（T2）</div>
+                <div class="text-sm font-semibold text-emerald-300">${item.t2}</div>
+              </div>
+              <div class="p-3 rounded bg-gray-900 border border-gray-800">
+                <div class="text-gray-400 mb-1">停損位置與依據</div>
+                <div class="text-sm font-semibold text-rose-400">${item.stopLoss}</div>
+                <div class="text-[11px] text-gray-400 mt-1">${item.stopBasis}</div>
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">成立理由（規則 1：依據類型 + 日期）</h3>
+              <ul class="space-y-2">${reasonsHtml}</ul>
+            </div>
+
+            <div class="mb-4 p-2.5 rounded bg-gray-900/60 border border-gray-800 text-xs text-gray-400">
+              <strong class="text-gray-300">【規則 3 數據來源回溯】</strong>${item.source}
+            </div>
+
+            ${missingHtml}
+
+            <div class="mt-4 p-3.5 rounded bg-rose-950/30 border border-rose-800/60">
+              <h3 class="text-xs font-bold text-rose-300 mb-1.5">【規則 4】這個判斷會失效的條件（具體反向訊號）：</h3>
+              <ul class="space-y-1">${invHtml}</ul>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    function filterTicker(ticker) {
+      renderSetups(ticker);
+    }
+
+    renderSetups();
+  </script>
+</body>
+</html>
