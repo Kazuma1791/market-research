@@ -3,263 +3,532 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>個人市場研究終端 | 15年研究員規格</title>
+  <title>個人市場研究實戰終端 (實時更新版) | NVDA · TSLA · MU</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body { background-color: #0b0f19; color: #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: #090d16; color: #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     .card { background-color: #111827; border: 1px solid #1f2937; }
-    .tag-tech { background: #1e3a8a; color: #93c5fd; }
-    .tag-fund { background: #064e3b; color: #6ee7b7; }
-    .tag-news { background: #581c87; color: #d8b4fe; }
-    .tag-sent { background: #7c2d12; color: #fdba74; }
+    .tag-tech { background: #1e3a8a; color: #93c5fd; border: 1px solid #2563eb; }
+    .tag-fund { background: #064e3b; color: #6ee7b7; border: 1px solid #059669; }
+    .tag-news { background: #581c87; color: #d8b4fe; border: 1px solid #7c3aed; }
+    .tag-sent { background: #7c2d12; color: #fdba74; border: 1px solid #ea580c; }
+    .pulse-dot { animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
   </style>
 </head>
-<body class="min-h-screen p-4 md:p-8">
+<body class="min-h-screen p-4 md:p-6">
 
-  <!-- 頂部標題與規則6聲明 -->
-  <header class="max-w-6xl mx-auto mb-6 border-b border-gray-800 pb-4">
-    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+  <!-- 頂部 TradingView 官方實時報價跑馬燈（免 API Key 自動實時更新） -->
+  <div class="max-w-7xl mx-auto mb-4 rounded overflow-hidden border border-gray-800">
+    <div class="tradingview-widget-container">
+      <div class="tradingview-widget-container__widget"></div>
+      <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
+      {
+        "symbols": [
+          { "proName": "NASDAQ:NVDA", "title": "NVDA 英偉達" },
+          { "proName": "NASDAQ:TSLA", "title": "TSLA 特斯拉" },
+          { "proName": "NASDAQ:MU", "title": "MU 美光科技" },
+          { "proName": "AMEX:SPY", "title": "標普500 ETF" },
+          { "proName": "NASDAQ:QQQ", "title": "納指100 ETF" }
+        ],
+        "showSymbolLogo": true,
+        "isTransparent": true,
+        "displayMode": "adaptive",
+        "colorTheme": "dark",
+        "locale": "zh_TW"
+      }
+      </script>
+    </div>
+  </div>
+
+  <!-- 頂部控制中心與規則聲明 -->
+  <header class="max-w-7xl mx-auto mb-6 card rounded-lg p-5">
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 border-b border-gray-800 pb-4">
       <div>
-        <h1 class="text-2xl font-bold text-white tracking-tight">個人市場研究實戰看板</h1>
-        <p class="text-xs text-gray-400 mt-1">依風險報酬比（R:R）由高至低自動排序｜強制標示依據、日期、來源與失效條件</p>
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 pulse-dot"></span>
+          <h1 class="text-xl md:text-2xl font-bold text-white">個人市場研究實戰終端（實時數據連動版）</h1>
+        </div>
+        <p class="text-xs text-gray-400 mt-1">
+          研究基準日：2026-10-16 美股收盤｜實時串流：TradingView 行情組件 + Finnhub 即時 API 雙引擎
+        </p>
       </div>
+
+      <!-- 視圖與標的篩選按鈕 -->
       <div class="flex flex-wrap gap-2">
-        <button onclick="filterTicker('ALL')" class="px-3 py-1.5 text-xs font-medium rounded bg-blue-600 text-white hover:bg-blue-500">全部標的</button>
-        <button onclick="filterTicker('NVDA')" class="px-3 py-1.5 text-xs font-medium rounded bg-gray-800 text-gray-300 hover:bg-gray-700">NVDA</button>
-        <button onclick="filterTicker('MU')" class="px-3 py-1.5 text-xs font-medium rounded bg-gray-800 text-gray-300 hover:bg-gray-700">MU</button>
-        <button onclick="filterTicker('TSLA')" class="px-3 py-1.5 text-xs font-medium rounded bg-gray-800 text-gray-300 hover:bg-gray-700">TSLA</button>
+        <button onclick="setFilter('ALL')" class="px-3 py-1.5 text-xs font-semibold rounded bg-blue-600 text-white hover:bg-blue-500">全部顯示</button>
+        <button onclick="setFilter('NVDA')" class="px-3 py-1.5 text-xs font-semibold rounded bg-gray-800 text-gray-200 hover:bg-gray-700">NVDA</button>
+        <button onclick="setFilter('TSLA')" class="px-3 py-1.5 text-xs font-semibold rounded bg-gray-800 text-gray-200 hover:bg-gray-700">TSLA</button>
+        <button onclick="setFilter('MU')" class="px-3 py-1.5 text-xs font-semibold rounded bg-gray-800 text-gray-200 hover:bg-gray-700">MU</button>
       </div>
     </div>
 
-    <!-- 免責與數據回溯聲明 -->
-    <div class="mt-4 p-3 rounded bg-gray-900/90 border border-gray-700 text-xs text-gray-300 flex flex-col gap-1">
-      <div><span class="font-semibold text-amber-400">【規則 6 聲明】</span>本網站提供的是客觀研究整理，不是投資建議，最終下單與部位風控決策由投資人自行負責。</div>
-      <div><span class="font-semibold text-blue-400">【規則 3 數據回溯基準】</span>預載價格與財務指標回溯自 2026-10-16 美股收盤公開行情（NASDAQ / NYSE 官方收盤紀錄與公司財報）。</div>
+    <!-- Finnhub 實時 API 控制台（自動觸發價位比對與即時新聞） -->
+    <div class="mt-4 p-3.5 rounded bg-gray-900 border border-gray-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+      <div class="flex-1 text-xs">
+        <div class="font-bold text-blue-400 mb-1">【實時價位與突發新聞 API 引擎（Finnhub REST API）】</div>
+        <p class="text-gray-400">
+          輸入免費 <a href="https://finnhub.io/" target="_blank" class="underline text-blue-300">Finnhub API Key</a> 後，系統每 30 秒自動抓取 NVDA / TSLA / MU 實時報價與近 7 日官方新聞，並自動檢測是否觸發「進場區間」或「規則 4 失效停損條件」。金鑰僅儲存於你的瀏覽器本機。
+        </p>
+      </div>
+      <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+        <input id="apiKeyInput" type="password" placeholder="貼上 Finnhub API Key..." class="px-3 py-1.5 text-xs rounded bg-gray-950 border border-gray-700 text-white w-56 focus:outline-none focus:border-blue-500" />
+        <button onclick="saveApiKeyAndFetch()" class="px-3 py-1.5 text-xs font-semibold rounded bg-emerald-600 text-white hover:bg-emerald-500">儲存並實時同步</button>
+        <button onclick="fetchAllLiveData()" class="px-3 py-1.5 text-xs font-semibold rounded bg-gray-800 text-gray-200 hover:bg-gray-700">立即刷新</button>
+        <span id="syncStatus" class="text-[11px] text-amber-400 font-mono">狀態：待輸入 API Key</span>
+      </div>
+    </div>
+
+    <!-- 規則 6 與 規則 3 固定聲明 -->
+    <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+      <div class="p-2.5 rounded bg-gray-900/70 border border-gray-800 text-gray-300">
+        <span class="font-bold text-amber-400">【規則 6 免責聲明】</span>你提供的是研究整理，不是投資建議，最終決策由投資人自己負責。
+      </div>
+      <div class="p-2.5 rounded bg-gray-900/70 border border-gray-800 text-gray-300">
+        <span class="font-bold text-blue-400">【規則 3 來源回溯】</span>靜態基準價回溯自 2026-10-16 NASDAQ 官方收盤與財報；實時價位回溯自 TradingView 與 Finnhub API。
+      </div>
     </div>
   </header>
 
-  <!-- 缺漏資料補充提示區（規則2） -->
-  <section class="max-w-6xl mx-auto mb-6">
-    <div class="p-3 rounded bg-amber-950/40 border border-amber-700/60 text-xs text-amber-200">
-      <span class="font-bold">【規則 2 待補充查證清單】</span>
-      目前無未查證之推測數字。若後續分析涉及未公開之最新機構籌碼或即時盤中大單，將直接顯示：<code class="bg-black/40 px-1.5 py-0.5 rounded text-amber-300">資料不足，需要我補充：___</code>
+  <!-- 實時互動技術分析圖表區（可切換標的） -->
+  <section class="max-w-7xl mx-auto mb-6 card rounded-lg p-4">
+    <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+      <h2 class="text-sm font-bold text-white">【技術面實時 K 線監控】TradingView 即時圖表（含 RSI 與均線）</h2>
+      <div class="flex gap-2">
+        <button onclick="loadChart('NASDAQ:NVDA')" class="px-2.5 py-1 text-xs rounded bg-gray-800 hover:bg-blue-600 text-white">切換 NVDA 圖表</button>
+        <button onclick="loadChart('NASDAQ:TSLA')" class="px-2.5 py-1 text-xs rounded bg-gray-800 hover:bg-blue-600 text-white">切換 TSLA 圖表</button>
+        <button onclick="loadChart('NASDAQ:MU')" class="px-2.5 py-1 text-xs rounded bg-gray-800 hover:bg-blue-600 text-white">切換 MU 圖表</button>
+      </div>
     </div>
+    <div id="tv-chart-container" class="w-full h-[420px] rounded overflow-hidden border border-gray-800"></div>
   </section>
 
-  <!-- 交易設定卡片容器 -->
-  <main id="setup-container" class="max-w-6xl mx-auto grid grid-cols-1 gap-6"></main>
+  <!-- 第一部分：最新關鍵價位與消息面深度分析（依標的分類） -->
+  <section class="max-w-7xl mx-auto mb-8">
+    <h2 class="text-lg font-bold text-white mb-4 border-l-4 border-blue-500 pl-3">
+      一、NVDA · TSLA · MU 最新關鍵價位與消息面變化（含實時價位比對）
+    </h2>
+    <div id="analysis-container" class="grid grid-cols-1 gap-6"></div>
+  </section>
+
+  <!-- 第二部分：高勝率交易設定（依風險報酬比 R:R 由高至低排列） -->
+  <section class="max-w-7xl mx-auto mb-12">
+    <h2 class="text-lg font-bold text-white mb-4 border-l-4 border-emerald-500 pl-3">
+      二、高勝率交易設定清單（依第二目標風險報酬比 R:R 由高至低排序）
+    </h2>
+    <div id="setups-container" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+  </section>
 
   <script>
-    const setups = [
+    // ==================== 1. 基準研究資料庫（嚴格遵循 6 大規則） ====================
+    const marketAnalysis = [
       {
-        rank: 1,
         ticker: "NVDA",
         name: "英偉達",
-        direction: "做多",
-        strategy: "關鍵支撐區超賣反彈",
-        entryRange: "$213.50 – $215.50（均價 $214.50）",
-        t1: "$226.00（R:R 2.30 : 1）",
-        t2: "$238.00（R:R 4.70 : 1）",
-        rrValue: 4.70,
-        stopLoss: "$209.50",
-        stopBasis: "【技術面｜2026-10-16】跌破 10/16 盤中低點 $213.32 超過 1.7%，失守 $210.00 整數關卡。",
-        source: "NASDAQ 官方收盤歷史數據（2026-10-01 至 2026-10-16）、NVDA 最新季度財報（TTM EPS $7.91）",
-        missingData: "",
-        reasons: [
-          { type: "技術面", tagClass: "tag-tech", date: "2026-10-16", text: "股價自 10/06 高點 $239.24 連續 8 個交易日回檔至 10/16 最低 $213.32（跌幅 10.83%），日線觸及超賣區後收於 $214.13，守住前波平台。" },
-          { type: "基本面", tagClass: "tag-fund", date: "2026-10-16", text: "滾動市盈率（P/E）回落至 27.07 倍（以收盤 $214.13 與 EPS $7.91 計算），處於近一年估值偏低區間。" },
-          { type: "消息面", tagClass: "tag-news", date: "2026-10-15", text: "微軟發表 Maia 300 晶片預計 2027 年才量產，短期大型資料中心算力採購結構未變。" }
+        baseClose: 214.13,
+        baseLow: 213.32,
+        baseDate: "2026-10-16",
+        trendSummary: "跌深回測前波平台支撐，短線進入技術性超賣區",
+        levels: {
+          r2: "$230.86 – $239.24（10/01 起跌平台高點與 10/06 波段高點）",
+          r1: "$224.50 – $227.00（10/12–10/14 跌破之箱型頸線反壓區）",
+          s1: "$213.30 – $214.50（10/16 盤中低點 $213.32 與前波整理平台下緣）",
+          s2: "$200.09 – $209.50（$210 整數心理關卡與 2026 夏季平台低點區）",
+          bullStop: 210.00,
+          bearStop: 231.00
+        },
+        source: "NASDAQ 官方收盤紀錄（2026-10-01 至 2026-10-16）、NVDA 季度財報（TTM EPS $7.91）、美國財政部 10 年期公債殖利率報價（2026-10-16）",
+        missingData: "2026-10-16 盤後至最新交易時段之 SEC Form 4 內部人交易申報、CoWoS 封裝最新排產變動（啟用上方 Finnhub API Key 後可自動載入最新外電新聞）",
+        points: [
+          { type: "技術面", cls: "tag-tech", date: "2026-10-16", text: "自 10/06 高點 $239.24 連續 8 個交易日回檔至 10/16 低點 $213.32（波段跌幅 10.83%），日線動能進入超賣區後收於 $214.13，初步守住前波平台。" },
+          { type: "基本面", cls: "tag-fund", date: "2026-10-16", text: "以收盤價 $214.13 與 TTM EPS $7.91 計算，滾動本益比（P/E）回落至 27.07 倍，位於近一年估值區間偏下緣。" },
+          { type: "消息面", cls: "tag-news", date: "2026-10-15", text: "微軟發表自研 Maia 300 AI 晶片引發市場討論，但官方時程預計 2027 年才量產，短期大型雲端客戶對 NVDA 核心算力採購結構未變。" },
+          { type: "情緒面", cls: "tag-sent", date: "2026-10-16", text: "美國 10 年期公債殖利率處於 5.19% 高位，壓抑高估值科技股追價意願，反彈至頸線易遇解套賣壓。" }
         ],
         invalidations: [
-          "【技術面】日 K 線收盤價實體跌破 $210.00，破壞區間支撐結構。",
-          "【情緒面】反彈日成交量低於 30 日均量（1.09 億股），且於 $218.00 遭遇長上影線陰線壓制。",
-          "【消息面】晶片出口管制出現突發收緊政策或主要雲端客戶下修當季資本支出。"
+          "【技術面反向訊號】日 K 線收盤價實體跌破 $210.00 且單日成交量高於 30 日均量（1.09 億股），支撐破位轉為主跌段。",
+          "【情緒面反向訊號】反彈觸及 $218.00–$220.00 即收長上影線陰線且日量低於 1.09 億股，代表低接買盤動能衰竭。",
+          "【消息面反向訊號】若股價帶量（逾 1.3 億股）強勢收復 $231.00，或 CSP 雲端巨頭宣布追加資本支出，則反抽偏空判斷失效。"
         ]
       },
       {
-        rank: 2,
-        ticker: "MU",
-        name: "美光科技",
-        direction: "做空",
-        strategy: "跌破千元大關後反抽承壓順勢放空",
-        entryRange: "$925.00 – $945.00（均價 $935.00）",
-        t1: "$875.00（R:R 2.00 : 1）",
-        t2: "$800.00（R:R 4.50 : 1）",
-        rrValue: 4.50,
-        stopLoss: "$965.00",
-        stopBasis: "【技術面｜2026-10-16】突破 10/13 收盤價 $953.19 上方密集成交區約 1.2%，代表單邊下跌趨勢暫緩。",
-        source: "NASDAQ 官方收盤數據（2026-10-01 收 $1,097.39、2026-10-16 收 $878.84，盤中低點 $875.00）",
-        missingData: "",
-        reasons: [
-          { type: "技術面", tagClass: "tag-tech", date: "2026-10-16", text: "自 10/01 的 $1,097.39 破位崩跌至 10/16 收盤 $878.84，單月重挫 19.92%；10/16 收近光腳陰線，5 日與 10 日均線陡峭下彎。" },
-          { type: "基本面", tagClass: "tag-fund", date: "2026-10-16", text: "滾動 P/E 為 11.82 倍，反映市場對記憶體景氣循環高點反轉之折價。" },
-          { type: "情緒面", tagClass: "tag-sent", date: "2026-10-16", text: "機構資金針對 HBM/DRAM 供需預期進行部位調節，破位後反抽皆伴隨解套賣壓。" }
-        ],
-        invalidations: [
-          "【技術面】日 K 線以大成交量長紅吞噬線直接收復 $960.00。",
-          "【消息面】三大記憶體原廠宣布聯合減產或 HBM 明年度報價上調。",
-          "【技術面】於 $875–$900 區間連續 3 個交易日縮量不破底，形成日線底背離。"
-        ]
-      },
-      {
-        rank: 3,
         ticker: "TSLA",
         name: "特斯拉",
-        direction: "做多",
-        strategy: "350 整數防線長下影線多頭防守",
-        entryRange: "$352.00 – $355.00（均價 $353.50）",
-        t1: "$375.00（R:R 2.87 : 1）",
-        t2: "$385.00（R:R 4.20 : 1）",
-        rrValue: 4.20,
-        stopLoss: "$346.00",
-        stopBasis: "【技術面｜2026-10-16】跌破 10/16 日線低點 $349.33 約 0.95%，代表當日低接防守買盤全數套牢。",
-        source: "NASDAQ 官方收盤數據（2026-10-16 開 $369.15、低 $349.33、收 $354.72）",
-        missingData: "",
-        reasons: [
-          { type: "技術面", tagClass: "tag-tech", date: "2026-10-16", text: "10/16 急挫至 $349.33 後拉升收於 $354.72，留 $5.39 長下影線，精準守住 10 月初起漲平台高點 $354.11。" },
-          { type: "情緒面", tagClass: "tag-sent", date: "2026-10-16", text: "自 10/09 高點 $382.70 連跌 5 日後，短線恐慌拋壓於 $350 整數關卡一次性釋放。" }
+        baseClose: 354.72,
+        baseLow: 349.33,
+        baseDate: "2026-10-16",
+        trendSummary: "$350 整數關卡收出 $5.39 長下影線，展現壓力轉支撐力道",
+        levels: {
+          r2: "$382.70 – $385.50（10/09 波段收盤高點與 10/16 盤中高點）",
+          r1: "$375.23 – $378.03（10/12–10/13 震盪整理中繼頸線區）",
+          s1: "$349.33 – $354.11（10/16 長下影線低點與 10 月初突破平台高點）",
+          s2: "$346.00（10/16 低點下方 0.95% 極限停損防線）",
+          bullStop: 346.00,
+          bearStop: 385.50
+        },
+        source: "NASDAQ 官方收盤紀錄（2026-10-16 開盤 $369.15、最低 $349.33、收盤 $354.72）",
+        missingData: "最新一季扣除碳權後之汽車本業毛利率實際公布值、10 月中旬中國與歐美市場最新週度上牌量數據，以及 Robotaxi 監管審批最新公告",
+        points: [
+          { type: "技術面", cls: "tag-tech", date: "2026-10-16", text: "10/16 盤中自 $369.15 急挫測試 $349.33 後獲買盤拉升收於 $354.72，留下 $5.39 長下影線，精準守住 10 月初突破平台高點 $354.11。" },
+          { type: "情緒面", cls: "tag-sent", date: "2026-10-16", text: "自 10/09 高點 $382.70 連跌 5 日後，短線停損賣壓於跌破 $350 瞬間集中釋放，1.4 兆美元市值關卡浮現低接承接盤。" }
         ],
         invalidations: [
-          "【技術面】開盤直接跳空跌破 $349.00，長下影線支撐轉為套牢反壓。",
-          "【技術面】反彈受制於 $365.00 下方並構築下跌旗形（Bear Flag）。",
-          "【基本面】季度毛利率或交車數據低於市場共識預期。"
+          "【技術面反向訊號】開盤直接跳空跌破 $349.00 且首小時無法站回 $350.00，長下影線防守失效並轉為套牢反壓。",
+          "【技術面反向訊號】反彈無法突破 $365.00 且連續 3 日高點下移形成下跌旗形（Bear Flag）。",
+          "【基本面反向訊號】最新公布之汽車毛利率或交車指引低於市場預期，或宣布新一輪全面降價促銷。"
         ]
       },
       {
-        rank: 4,
-        ticker: "NVDA",
-        name: "英偉達",
-        direction: "做空",
-        strategy: "跌深反抽遇短期均線反壓放空",
-        entryRange: "$224.50 – $227.00（均價 $225.50）",
-        t1: "$214.00（R:R 1.92 : 1）",
-        t2: "$201.00（R:R 4.08 : 1）",
-        rrValue: 4.08,
-        stopLoss: "$231.50",
-        stopBasis: "【技術面｜2026-10-16】突破 10/01 平台高點 $230.86，下降通道結構破壞。",
-        source: "NASDAQ 官方收盤數據、美國財政部 10 年期公債殖利率報價（2026-10-16 為 5.19%）",
-        missingData: "",
-        reasons: [
-          { type: "技術面", tagClass: "tag-tech", date: "2026-10-16", text: "10 月中旬跌破短中期均線形成「高點降低」下降通道，$225–$227 為 10/12–10/13 跌破之頸線反壓區。" },
-          { type: "消息面", tagClass: "tag-news", date: "2026-10-16", text: "美債 10 年期殖利率處於 5.19% 高位，壓抑高估值科技股反彈延續性。" }
+        ticker: "MU",
+        name: "美光科技",
+        baseClose: 878.84,
+        baseLow: 875.00,
+        baseDate: "2026-10-16",
+        trendSummary: "單月重挫 19.92% 處於空頭主跌段，收近光腳長陰線尚未見底",
+        levels: {
+          r2: "$953.19 – $965.00（10/13 收盤密集成交區與空頭結構防守線）",
+          r1: "$925.00 – $945.00（跌破千元大關後之下降通道反抽壓力帶）",
+          s1: "$875.00（10/16 盤中最低點，目前無右側止跌訊號）",
+          s2: "$800.00（下方深層整數心理支撐關卡）",
+          bullStop: 875.00,
+          bearStop: 965.00
+        },
+        source: "NASDAQ 官方收盤紀錄（2026-10-01 收 $1,097.39、2026-10-16 收 $878.84）、MU 季度財報數據",
+        missingData: "TrendForce 最新一週 DRAM / NAND Flash 現貨與合約報價實際漲跌幅數據，以及三大記憶體原廠最新產能調控聲明",
+        points: [
+          { type: "技術面", cls: "tag-tech", date: "2026-10-16", text: "自 10/01 收盤 $1,097.39 單邊崩跌至 10/16 收盤 $878.84（累計跌幅 19.92%）；10/16 收近光腳陰線（低點 $875.00），5 日與 10 日均線陡峭下彎。" },
+          { type: "基本面", cls: "tag-fund", date: "2026-10-16", text: "滾動本益比（P/E）約 11.82 倍，反映記憶體景氣循環高點預期下修之估值折價，不能單憑低 P/E 進行左側摸底。" },
+          { type: "消息面", cls: "tag-news", date: "2026-10-16", text: "市場擔憂明年度 HBM 與傳統 DRAM 產能開出後供過於求，機構資金於跌破千元大關後持續調節。" }
         ],
         invalidations: [
-          "【技術面】日 K 線收盤實體站上 $231.00，且全日成交量突破 1.3 億股。",
-          "【消息面】主要 CSP 客戶宣布超預期上調下季度 AI 伺服器採購預算。"
-        ]
-      },
-      {
-        rank: 5,
-        ticker: "MU / TSLA",
-        name: "美光做多 / 特斯拉追空",
-        direction: "觀望",
-        strategy: "未達高勝率標準（淘汰設定）",
-        entryRange: "嚴禁進場",
-        t1: "無",
-        t2: "無（風報比與勝率不合格）",
-        rrValue: 0,
-        stopLoss: "無客觀停損點",
-        stopBasis: "【技術面｜2026-10-16】MU 日線收光腳大黑 K（收 $878.84）無止跌訊號；TSLA 下檔 $349.33 具長下影線強支撐，追空風報比低於 0.7 : 1。",
-        source: "NASDAQ 官方收盤數據（2026-10-16）",
-        missingData: "MU 底部機構大單承接訊號尚未出現，資料不足，需要我補充：等待日線出現止跌吞噬或底背離訊號後再行評估",
-        reasons: [
-          { type: "技術面", tagClass: "tag-tech", date: "2026-10-16", text: "MU 處於單邊主跌段，左側摸底缺乏右側確認；TSLA 於 $350 關卡呈現強烈多頭抵抗，追空極易遭軋空。" }
-        ],
-        invalidations: [
-          "【技術面】MU 出現帶量長下影線或雙底結構後，才可重新評估做多設定。",
-          "【技術面】TSLA 帶量實體跌破 $346.00 後，才可重新評估右側追空設定。"
+          "【技術面反向訊號】日 K 線出現帶量長紅吞噬線直接收復 $960.00–$965.00，宣告單邊下跌趨勢終結。",
+          "【技術面反向訊號】於 $875.00–$900.00 連續 3 個交易日縮量不破底，且日線 RSI 形成明確底背離。",
+          "【消息面反向訊號】主要記憶體原廠宣布聯合減產，或公告下一代 HBM 產能獲雲端客戶全數包銷且報價上調。"
         ]
       }
     ];
 
-    function renderSetups(filter = 'ALL') {
-      const container = document.getElementById('setup-container');
+    // ==================== 2. 高勝率交易設定資料庫 ====================
+    const tradeSetups = [
+      {
+        rank: 1, ticker: "NVDA", direction: "做多", strategy: "關鍵支撐區超賣反彈",
+        entryMin: 213.50, entryMax: 215.50, entryAvg: 214.50,
+        t1: 226.00, t2: 238.00, stop: 209.50,
+        rr1: "2.30 : 1", rr2: "4.70 : 1", rrSort: 4.70,
+        stopReason: "【技術面｜2026-10-16】跌破 10/16 低點 $213.32 逾 1.7% 且失守 $210 整數關卡。"
+      },
+      {
+        rank: 2, ticker: "MU", direction: "做空", strategy: "跌破千元大關反抽順勢放空",
+        entryMin: 925.00, entryMax: 945.00, entryAvg: 935.00,
+        t1: 875.00, t2: 800.00, stop: 965.00,
+        rr1: "2.00 : 1", rr2: "4.50 : 1", rrSort: 4.50,
+        stopReason: "【技術面｜2026-10-16】突破 10/13 收盤價 $953.19 上方密集成交區約 1.2%。"
+      },
+      {
+        rank: 3, ticker: "TSLA", direction: "做多", strategy: "350 整數防線長下影線多頭防守",
+        entryMin: 352.00, entryMax: 355.00, entryAvg: 353.50,
+        t1: 375.00, t2: 385.00, stop: 346.00,
+        rr1: "2.87 : 1", rr2: "4.20 : 1", rrSort: 4.20,
+        stopReason: "【技術面｜2026-10-16】跌破 10/16 長下影線低點 $349.33 約 0.95%，低接買盤全數套牢。"
+      },
+      {
+        rank: 4, ticker: "NVDA", direction: "做空", strategy: "跌深反抽遇頸線反壓放空",
+        entryMin: 224.50, entryMax: 227.00, entryAvg: 225.50,
+        t1: 214.00, t2: 201.00, stop: 231.50,
+        rr1: "1.92 : 1", rr2: "4.08 : 1", rrSort: 4.08,
+        stopReason: "【技術面｜2026-10-16】突破 10/01 起跌平台高點 $230.86，下降通道結構失效。"
+      }
+    ];
+
+    // 儲存實時 API 抓回的報價與新聞
+    let liveQuotes = {};
+    let liveNews = {};
+    let currentFilter = 'ALL';
+    let refreshTimer = null;
+
+    // ==================== 3. 渲染 TradingView 實時互動 K 線圖 ====================
+    function loadChart(symbol) {
+      const container = document.getElementById('tv-chart-container');
       container.innerHTML = '';
-      const filtered = setups
-        .filter(s => filter === 'ALL' || s.ticker.includes(filter))
-        .sort((a, b) => b.rrValue - a.rrValue);
-
-      filtered.forEach(item => {
-        const dirBadge = item.direction === '做多'
-          ? 'bg-emerald-900/60 text-emerald-300 border-emerald-700'
-          : item.direction === '做空'
-          ? 'bg-rose-900/60 text-rose-300 border-rose-700'
-          : 'bg-gray-800 text-gray-300 border-gray-600';
-
-        const missingHtml = item.missingData
-          ? `<div class="mt-3 p-2.5 rounded bg-amber-950/60 border border-amber-700 text-xs text-amber-300">
-               <strong>【規則 2 標示】</strong>資料不足，需要我補充：${item.missingData}
-             </div>`
-          : '';
-
-        const reasonsHtml = item.reasons.map(r => `
-          <li class="flex items-start gap-2 text-sm text-gray-300">
-            <span class="px-2 py-0.5 text-xs font-semibold rounded shrink-0 ${r.tagClass}">
-              ${r.type}｜${r.date}
-            </span>
-            <span>${r.text}</span>
-          </li>
-        `).join('');
-
-        const invHtml = item.invalidations.map(inv => `
-          <li class="text-xs text-rose-200/90 list-disc ml-4">${inv}</li>
-        `).join('');
-
-        container.innerHTML += `
-          <div class="card rounded-lg p-5 shadow-lg">
-            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-gray-800 pb-3 mb-4">
-              <div class="flex items-center gap-3">
-                <span class="text-xs font-mono px-2 py-1 rounded bg-gray-800 text-gray-400">排序 #${item.rank}</span>
-                <h2 class="text-lg font-bold text-white">${item.ticker}（${item.name}）— ${item.strategy}</h2>
-              </div>
-              <span class="px-3 py-1 text-xs font-bold rounded border ${dirBadge}">${item.direction}</span>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4 text-xs">
-              <div class="p-3 rounded bg-gray-900 border border-gray-800">
-                <div class="text-gray-400 mb-1">建議進場區間</div>
-                <div class="text-sm font-semibold text-white">${item.entryRange}</div>
-              </div>
-              <div class="p-3 rounded bg-gray-900 border border-gray-800">
-                <div class="text-gray-400 mb-1">第一目標（T1）</div>
-                <div class="text-sm font-semibold text-emerald-400">${item.t1}</div>
-              </div>
-              <div class="p-3 rounded bg-gray-900 border border-gray-800">
-                <div class="text-gray-400 mb-1">第二目標（T2）</div>
-                <div class="text-sm font-semibold text-emerald-300">${item.t2}</div>
-              </div>
-              <div class="p-3 rounded bg-gray-900 border border-gray-800">
-                <div class="text-gray-400 mb-1">停損位置與依據</div>
-                <div class="text-sm font-semibold text-rose-400">${item.stopLoss}</div>
-                <div class="text-[11px] text-gray-400 mt-1">${item.stopBasis}</div>
-              </div>
-            </div>
-
-            <div class="mb-4">
-              <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">成立理由（規則 1：依據類型 + 日期）</h3>
-              <ul class="space-y-2">${reasonsHtml}</ul>
-            </div>
-
-            <div class="mb-4 p-2.5 rounded bg-gray-900/60 border border-gray-800 text-xs text-gray-400">
-              <strong class="text-gray-300">【規則 3 數據來源回溯】</strong>${item.source}
-            </div>
-
-            ${missingHtml}
-
-            <div class="mt-4 p-3.5 rounded bg-rose-950/30 border border-rose-800/60">
-              <h3 class="text-xs font-bold text-rose-300 mb-1.5">【規則 4】這個判斷會失效的條件（具體反向訊號）：</h3>
-              <ul class="space-y-1">${invHtml}</ul>
-            </div>
-          </div>
-        `;
+      const script = document.createElement('script');
+      script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+      script.async = true;
+      script.innerHTML = JSON.stringify({
+        "autosize": true,
+        "symbol": symbol,
+        "interval": "D",
+        "timezone": "America/New_York",
+        "theme": "dark",
+        "style": "1",
+        "locale": "zh_TW",
+        "enable_publishing": false,
+        "hide_top_toolbar": false,
+        "save_image": false,
+        "studies": ["RSI@tv-basicstudies", "MASimple@tv-basicstudies"]
       });
+      container.appendChild(script);
     }
 
-    function filterTicker(ticker) {
-      renderSetups(ticker);
+    // ==================== 4. 渲染關鍵價位與消息面卡片 ====================
+    function renderAll() {
+      const analysisEl = document.getElementById('analysis-container');
+      const setupsEl = document.getElementById('setups-container');
+      analysisEl.innerHTML = '';
+      setupsEl.innerHTML = '';
+
+      // 渲染第一部分：最新關鍵價位與消息面
+      marketAnalysis
+        .filter(item => currentFilter === 'ALL' || item.ticker === currentFilter)
+        .forEach(item => {
+          const q = liveQuotes[item.ticker];
+          let liveBadgeHtml = '';
+          let alertHtml = '';
+
+          if (q && q.c) {
+            const diffPct = ((q.c - item.baseClose) / item.baseClose * 100).toFixed(2);
+            const colorCls = q.dp >= 0 ? 'text-emerald-400' : 'text-rose-400';
+            liveBadgeHtml = `
+              <div class="px-3 py-1.5 rounded bg-gray-900 border border-blue-500/50 text-xs flex items-center gap-3">
+                <span class="text-blue-300 font-bold">【Finnhub 實時現價】$${q.c.toFixed(2)}</span>
+                <span class="${colorCls} font-mono">當日漲跌: ${q.dp >= 0 ? '+' : ''}${q.dp.toFixed(2)}% (高 $${q.h} / 低 $${q.l})</span>
+                <span class="text-gray-400">較 10/16 基準價變動: ${diffPct}%</span>
+              </div>
+            `;
+
+            // 自動檢查是否觸發規則 4 失效條件
+            if (q.c < item.levels.bullStop) {
+              alertHtml = `<div class="mt-3 p-3 rounded bg-rose-950 border border-rose-500 text-xs text-rose-200 font-bold">
+                ⚠️【實時失效警報】${item.ticker} 即時現價 ($${q.c}) 已跌破多方關鍵防守價 ($${item.levels.bullStop})，觸發規則 4 看多失效條件！
+              </div>`;
+            } else if (q.c > item.levels.bearStop) {
+              alertHtml = `<div class="mt-3 p-3 rounded bg-emerald-950 border border-emerald-500 text-xs text-emerald-200 font-bold">
+                ⚠️【實時突破警報】${item.ticker} 即時現價 ($${q.c}) 已突破空方防守價 ($${item.levels.bearStop})，觸發規則 4 看空失效條件！
+              </div>`;
+            }
+          } else {
+            liveBadgeHtml = `
+              <div class="px-3 py-1 rounded bg-amber-950/50 border border-amber-700/60 text-xs text-amber-300">
+                【規則 2 實時 API 狀態】資料不足，需要我補充：請於上方輸入 Finnhub API Key 以啟用 API 自動比對（目前顯示 2026-10-16 收盤基準價 $${item.baseClose}）
+              </div>
+            `;
+          }
+
+          // 渲染實時新聞或待補充提示
+          const newsList = liveNews[item.ticker];
+          let liveNewsHtml = '';
+          if (newsList && newsList.length > 0) {
+            const items = newsList.slice(0, 3).map(n => {
+              const dt = new Date(n.datetime * 1000).toISOString().split('T')[0];
+              return `<li class="text-xs text-gray-300">
+                <span class="px-1.5 py-0.5 rounded tag-news text-[10px] mr-1.5">消息面｜${dt}｜來源: ${n.source}</span>
+                <a href="${n.url}" target="_blank" class="underline hover:text-blue-400">${n.headline}</a>
+              </li>`;
+            }).join('');
+            liveNewsHtml = `
+              <div class="mt-3 p-3 rounded bg-purple-950/20 border border-purple-800/50">
+                <div class="text-xs font-bold text-purple-300 mb-2">【Finnhub 實時抓取之最新外電消息（可回溯來源）】</div>
+                <ul class="space-y-1.5">${items}</ul>
+              </div>
+            `;
+          }
+
+          const pointsHtml = item.points.map(p => `
+            <li class="flex items-start gap-2 text-xs md:text-sm text-gray-200">
+              <span class="px-2 py-0.5 text-[11px] font-semibold rounded shrink-0 ${p.cls}">${p.type}｜${p.date}</span>
+              <span>${p.text}</span>
+            </li>
+          `).join('');
+
+          const invHtml = item.invalidations.map(inv => `
+            <li class="text-xs text-rose-200 list-disc ml-4">${inv}</li>
+          `).join('');
+
+          analysisEl.innerHTML += `
+            <div class="card rounded-lg p-5 shadow-lg">
+              <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-gray-800 pb-3 mb-4">
+                <div>
+                  <h3 class="text-lg font-bold text-white">${item.ticker}（${item.name}）— ${item.trendSummary}</h3>
+                  <p class="text-xs text-gray-400 mt-0.5">基準收盤價：$${item.baseClose}（盤中低點 $${item.baseLow}｜資料日期：${item.baseDate}）</p>
+                </div>
+                ${liveBadgeHtml}
+              </div>
+
+              ${alertHtml}
+
+              <!-- 關鍵價位矩陣 -->
+              <div class="grid grid-cols-1 md:grid-cols-4 gap-3 my-4 text-xs">
+                <div class="p-3 rounded bg-gray-900 border border-gray-800">
+                  <div class="text-rose-400 font-bold mb-1">上方第二道壓力 (R2)</div>
+                  <div class="text-gray-200">${item.levels.r2}</div>
+                </div>
+                <div class="p-3 rounded bg-gray-900 border border-gray-800">
+                  <div class="text-rose-300 font-bold mb-1">上方第一道壓力 (R1)</div>
+                  <div class="text-gray-200">${item.levels.r1}</div>
+                </div>
+                <div class="p-3 rounded bg-gray-900 border border-gray-800">
+                  <div class="text-emerald-300 font-bold mb-1">下方第一道支撐 (S1)</div>
+                  <div class="text-gray-200">${item.levels.s1}</div>
+                </div>
+                <div class="p-3 rounded bg-gray-900 border border-gray-800">
+                  <div class="text-emerald-400 font-bold mb-1">下方第二道強支撐 (S2)</div>
+                  <div class="text-gray-200">${item.levels.s2}</div>
+                </div>
+              </div>
+
+              <!-- 規則 1 依據列表 -->
+              <div class="mb-4">
+                <div class="text-xs font-bold text-gray-400 uppercase mb-2">【規則 1】技術面／基本面／消息面／情緒面判斷與引用日期</div>
+                <ul class="space-y-2">${pointsHtml}</ul>
+              </div>
+
+              ${liveNewsHtml}
+
+              <!-- 規則 2 待補充查證 -->
+              <div class="mt-3 p-2.5 rounded bg-amber-950/40 border border-amber-700/60 text-xs text-amber-200">
+                <strong>【規則 2 缺漏資料標示】</strong>資料不足，需要我補充：${item.missingData}
+              </div>
+
+              <!-- 規則 3 數據來源 -->
+              <div class="mt-2 p-2.5 rounded bg-gray-900/70 border border-gray-800 text-xs text-gray-400">
+                <strong class="text-gray-300">【規則 3 數據來源回溯】</strong>${item.source}
+              </div>
+
+              <!-- 規則 4 失效條件 -->
+              <div class="mt-3 p-3.5 rounded bg-rose-950/30 border border-rose-800/60">
+                <div class="text-xs font-bold text-rose-300 mb-1">【規則 4】這個判斷會失效的條件（具體反向訊號）：</div>
+                <ul class="space-y-1">${invHtml}</ul>
+              </div>
+            </div>
+          `;
+        });
+
+      // 渲染第二部分：高勝率交易設定卡片
+      tradeSetups
+        .filter(s => currentFilter === 'ALL' || s.ticker === currentFilter)
+        .sort((a, b) => b.rrSort - a.rrSort)
+        .forEach(s => {
+          const q = liveQuotes[s.ticker];
+          let zoneStatus = `<span class="text-xs text-gray-400">基準均價 $${s.entryAvg}</span>`;
+          if (q && q.c) {
+            if (q.c >= s.entryMin && q.c <= s.entryMax) {
+              zoneStatus = `<span class="px-2 py-0.5 rounded bg-emerald-600 text-white text-xs font-bold">🎯 實時現價 $${q.c} 已進入建議進場區間！</span>`;
+            } else if ((s.direction === '做多' && q.c <= s.stop) || (s.direction === '做空' && q.c >= s.stop)) {
+              zoneStatus = `<span class="px-2 py-0.5 rounded bg-rose-600 text-white text-xs font-bold">❌ 實時現價 $${q.c} 已觸發停損失效 ($${s.stop})</span>`;
+            } else {
+              zoneStatus = `<span class="text-xs text-blue-300 font-mono">實時現價 $${q.c}（距離進場均價 ${((q.c - s.entryAvg)/s.entryAvg*100).toFixed(2)}%）</span>`;
+            }
+          }
+
+          const badgeCls = s.direction === '做多'
+            ? 'bg-emerald-900/60 text-emerald-300 border-emerald-600'
+            : 'bg-rose-900/60 text-rose-300 border-rose-600';
+
+          setupsEl.innerHTML += `
+            <div class="card rounded-lg p-4 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between border-b border-gray-800 pb-2.5 mb-3">
+                  <div class="flex items-center gap-2">
+                    <span class="px-2 py-0.5 text-xs font-mono rounded bg-gray-800 text-gray-300">R:R 排名 #${s.rank}</span>
+                    <h4 class="font-bold text-white text-base">${s.ticker} — ${s.strategy}</h4>
+                  </div>
+                  <span class="px-2.5 py-0.5 text-xs font-bold rounded border ${badgeCls}">${s.direction}</span>
+                </div>
+                <div class="mb-3">${zoneStatus}</div>
+                <div class="grid grid-cols-2 gap-2 text-xs mb-3">
+                  <div class="p-2.5 rounded bg-gray-900 border border-gray-800">
+                    <div class="text-gray-400">建議進場區間</div>
+                    <div class="text-white font-semibold mt-0.5">$${s.entryMin} – $${s.entryMax}</div>
+                  </div>
+                  <div class="p-2.5 rounded bg-gray-900 border border-gray-800">
+                    <div class="text-gray-400">停損位置</div>
+                    <div class="text-rose-400 font-semibold mt-0.5">$${s.stop}</div>
+                  </div>
+                  <div class="p-2.5 rounded bg-gray-900 border border-gray-800">
+                    <div class="text-gray-400">第一目標 (T1)</div>
+                    <div class="text-emerald-400 font-semibold mt-0.5">$${s.t1}（${s.rr1}）</div>
+                  </div>
+                  <div class="p-2.5 rounded bg-gray-900 border border-gray-800">
+                    <div class="text-gray-400">第二目標 (T2)</div>
+                    <div class="text-emerald-300 font-semibold mt-0.5">$${s.t2}（${s.rr2}）</div>
+                  </div>
+                </div>
+              </div>
+              <div class="text-[11px] text-gray-400 border-t border-gray-800 pt-2">
+                <strong>停損依據：</strong>${s.stopReason}
+              </div>
+            </div>
+          `;
+        });
     }
 
-    renderSetups();
+    // ==================== 5. Finnhub 實時報價與新聞輪詢引擎 ====================
+    async function fetchAllLiveData() {
+      const apiKey = localStorage.getItem('finnhub_api_key');
+      const statusEl = document.getElementById('syncStatus');
+      if (!apiKey) {
+        statusEl.textContent = '狀態：未設定 API Key（使用 2026-10-16 基準數據）';
+        renderAll();
+        return;
+      }
+
+      statusEl.textContent = '狀態：正在同步實時報價與新聞...';
+      const tickers = ['NVDA', 'TSLA', 'MU'];
+      const today = new Date().toISOString().split('T')[0];
+      const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
+
+      try {
+        for (const t of tickers) {
+          // 1. 抓取實時報價
+          const quoteRes = await fetch(`https://finnhub.io/api/v1/quote?symbol=${t}&token=${apiKey}`);
+          if (quoteRes.ok) {
+            const qData = await quoteRes.json();
+            if (qData && qData.c) liveQuotes[t] = qData;
+          }
+          // 2. 抓取近 7 日公司新聞
+          const newsRes = await fetch(`https://finnhub.io/api/v1/company-news?symbol=${t}&from=${sevenDaysAgo}&to=${today}&token=${apiKey}`);
+          if (newsRes.ok) {
+            const nData = await newsRes.json();
+            if (Array.isArray(nData)) liveNews[t] = nData;
+          }
+        }
+        const nowStr = new Date().toLocaleTimeString('zh-TW', { hour12: false });
+        statusEl.textContent = `狀態：實時同步成功 (${nowStr}，每 30 秒自動更新)`;
+        statusEl.className = 'text-[11px] text-emerald-400 font-mono';
+      } catch (err) {
+        statusEl.textContent = '狀態：API 連線異常，請檢查金鑰是否正確';
+        statusEl.className = 'text-[11px] text-rose-400 font-mono';
+      }
+      renderAll();
+    }
+
+    function saveApiKeyAndFetch() {
+      const val = document.getElementById('apiKeyInput').value.trim();
+      if (val) {
+        localStorage.setItem('finnhub_api_key', val);
+        fetchAllLiveData();
+        if (refreshTimer) clearInterval(refreshTimer);
+        refreshTimer = setInterval(fetchAllLiveData, 30000);
+      }
+    }
+
+    function setFilter(ticker) {
+      currentFilter = ticker;
+      renderAll();
+      if (ticker !== 'ALL') loadChart(`NASDAQ:${ticker}`);
+    }
+
+    // 初始化啟動
+    window.addEventListener('DOMContentLoaded', () => {
+      const savedKey = localStorage.getItem('finnhub_api_key');
+      if (savedKey) {
+        document.getElementById('apiKeyInput').value = savedKey;
+        fetchAllLiveData();
+        refreshTimer = setInterval(fetchAllLiveData, 30000);
+      } else {
+        renderAll();
+      }
+      loadChart('NASDAQ:NVDA');
+    });
   </script>
 </body>
 </html>
