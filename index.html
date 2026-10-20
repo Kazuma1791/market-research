@@ -304,7 +304,8 @@
     async function fetchYahooZeroKey(ticker) {
       const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=5d`;
       const proxies = [
-        `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`, `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`,
+        `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`
       ];
 
       for (const proxyUrl of proxies) {
@@ -382,7 +383,14 @@
           liveQuotes[t] = quote;
           successCount++;
           activeSource = quote.sourceName;
-          document.getElementById(`man${t}`).value = quote.c; } }  const nowTime = new Date().toLocaleTimeString('zh-TW', { hour12: false }); if (successCount > 0) { const sampleDate = Object.values(liveQuotes)[0].dateStr; statusEl.textContent = `✅ 已自動更新至最新行情（最新報價交易日：${sampleDate}｜同步時間：${nowTime}｜來源：${activeSource}）`;
+          document.getElementById(`man${t}`).value = quote.c;
+        }
+      }
+
+      const nowTime = new Date().toLocaleTimeString('zh-TW', { hour12: false });
+      if (successCount > 0) {
+        const sampleDate = Object.values(liveQuotes)[0].dateStr;
+        statusEl.textContent = `✅ 已自動更新至最新行情（最新報價交易日：${sampleDate}｜同步時間：${nowTime}｜來源：${activeSource}）`;
         statusEl.className = "text-xs text-emerald-400 font-mono mt-1";
         dotEl.className = "w-2.5 h-2.5 rounded-full bg-emerald-400 pulse-dot";
 
@@ -407,7 +415,14 @@
       const todayStr = new Date().toISOString().split('T')[0];
       const manualSaved = JSON.parse(localStorage.getItem('manual_price_override') || '{}');
       ['NVDA', 'TSLA', 'MU'].forEach(t => {
-        const val = parseFloat(document.getElementById(`man${t}`).value); if (!isNaN(val) && val > 0) { const base = keyStructureDB[t].baseClose; const dp = ((val - base) / base) * 100; const obj = { c: val, h: val, l: val, pc: base, dp: dp, dateStr: todayStr, sourceName: `使用者手動更新報價 (${todayStr})`
+        const val = parseFloat(document.getElementById(`man${t}`).value);
+        if (!isNaN(val) && val > 0) {
+          const base = keyStructureDB[t].baseClose;
+          const dp = ((val - base) / base) * 100;
+          const obj = {
+            c: val, h: val, l: val, pc: base, dp: dp,
+            dateStr: todayStr,
+            sourceName: `使用者手動更新報價 (${todayStr})`
           };
           liveQuotes[t] = obj;
           manualSaved[t] = obj;
@@ -418,7 +433,26 @@
       if (liveQuotes[selectedTicker]) {
         document.getElementById('posCurrent').value = liveQuotes[selectedTicker].c.toFixed(2);
       }
-      document.getElementById('globalDataTimestamp').textContent = `✅ 已套用手動最新報價（資料日期已更新為：${todayStr}）`; renderAll(); renderSavedPositions(); runPositionSimulation(); }  // ==================== 3. 畫面渲染（直接覆蓋卡片標題價格與日期） ==================== function renderAll() { const analysisEl = document.getElementById('analysis-container'); const setupsEl = document.getElementById('setups-container'); analysisEl.innerHTML = ''; setupsEl.innerHTML = '';  marketAnalysis .filter(item => currentFilter === 'ALL' \vert{}\vert{} item.ticker === currentFilter) .forEach(item => { const q = liveQuotes[item.ticker]; const displayPrice = q ? q.c : item.archiveClose; const displayLow = q ? q.l : item.archiveLow; const displayDate = q ? q.dateStr : `${item.archiveDate} (歷史基準快照)`;
+      document.getElementById('globalDataTimestamp').textContent = `✅ 已套用手動最新報價（資料日期已更新為：${todayStr}）`;
+      renderAll();
+      renderSavedPositions();
+      runPositionSimulation();
+    }
+
+    // ==================== 3. 畫面渲染（直接覆蓋卡片標題價格與日期） ====================
+    function renderAll() {
+      const analysisEl = document.getElementById('analysis-container');
+      const setupsEl = document.getElementById('setups-container');
+      analysisEl.innerHTML = '';
+      setupsEl.innerHTML = '';
+
+      marketAnalysis
+        .filter(item => currentFilter === 'ALL' || item.ticker === currentFilter)
+        .forEach(item => {
+          const q = liveQuotes[item.ticker];
+          const displayPrice = q ? q.c : item.archiveClose;
+          const displayLow = q ? q.l : item.archiveLow;
+          const displayDate = q ? q.dateStr : `${item.archiveDate} (歷史基準快照)`;
           const distToS1 = (((displayPrice - item.levels.s1Val) / item.levels.s1Val) * 100).toFixed(2);
           const distToR1 = (((item.levels.r1Val - displayPrice) / displayPrice) * 100).toFixed(2);
 
@@ -474,7 +508,7 @@
                 <div>
                   <h3 class="text-lg font-bold text-white">${item.ticker}（${item.name}）— 最新報價：$${displayPrice.toFixed(2)}</h3>
                   <p class="text-xs text-blue-300 font-mono mt-0.5">
-                    資料日期：${displayDate}｜當日低點：$${displayLow.toFixed(2)}｜距下方 S1 支撐：${distToS1}\%｜距上方 R1 壓力：${distToR1}%
+                    資料日期：${displayDate}｜當日低點：$${displayLow.toFixed(2)}｜距下方 S1 支撐：${distToS1}%｜距上方 R1 壓力：${distToR1}%
                   </p>
                 </div>
                 ${headerBadge}
@@ -483,4 +517,232 @@
               <div class="grid grid-cols-1 md:grid-cols-4 gap-3 my-4 text-xs">
                 <div class="p-3 rounded bg-gray-900 border border-gray-800"><div class="text-rose-400 font-bold mb-1">上方第二道壓力 (R2)</div><div class="text-gray-200">${item.levels.r2}</div></div>
                 <div class="p-3 rounded bg-gray-900 border border-gray-800"><div class="text-rose-300 font-bold mb-1">上方第一道壓力 (R1)</div><div class="text-gray-200">${item.levels.r1}</div></div>
-                <div class="p-3 rounded bg-gray-900 border border-gray-800"><div class
+                <div class="p-3 rounded bg-gray-900 border border-gray-800"><div class="text-emerald-300 font-bold mb-1">下方第一道支撐 (S1)</div><div class="text-gray-200">${item.levels.s1}</div></div>
+                <div class="p-3 rounded bg-gray-900 border border-gray-800"><div class="text-emerald-400 font-bold mb-1">下方第二道強支撐 (S2)</div><div class="text-gray-200">${item.levels.s2}</div></div>
+              </div>
+              <div class="mb-4">
+                <div class="text-xs font-bold text-gray-400 uppercase mb-2">【規則 1】技術面／基本面／消息面判斷與動態重算</div>
+                <ul class="space-y-2">${dynamicPoints}</ul>
+              </div>
+              <div class="mt-3 p-2.5 rounded bg-amber-950/40 border border-amber-700/60 text-xs text-amber-200">
+                <strong>【規則 2 缺漏資料標示】</strong>資料不足，需要我補充：${item.missingData}
+              </div>
+              <div class="mt-2 p-2.5 rounded bg-gray-900/70 border border-gray-800 text-xs text-gray-400">
+                <strong class="text-gray-300">【規則 3 數據來源回溯】</strong>${item.source}
+              </div>
+              <div class="mt-3 p-3.5 rounded bg-rose-950/30 border border-rose-800/60">
+                <div class="text-xs font-bold text-rose-300 mb-1">【規則 4】這個判斷會失效的條件（具體反向訊號）：</div>
+                <ul class="space-y-1">${invHtml}</ul>
+              </div>
+            </div>
+          `;
+        });
+
+      tradeSetups
+        .filter(s => currentFilter === 'ALL' || s.ticker === currentFilter)
+        .sort((a, b) => b.rrSort - a.rrSort)
+        .forEach(s => {
+          const q = liveQuotes[s.ticker];
+          const curP = q ? q.c : keyStructureDB[s.ticker].baseClose;
+          const curDate = q ? q.dateStr : "2026-10-16";
+          let statusBanner = '';
+
+          if (curP >= s.entryMin && curP <= s.entryMax) {
+            statusBanner = `<div class="mb-3 p-2 rounded bg-emerald-900/70 border border-emerald-500 text-xs text-emerald-200 font-bold">🎯 最新價 $${curP.toFixed(2)} (${curDate}) 正處於建議進場區間內！</div>`;
+          } else if ((s.direction === '做多' && curP <= s.stop) || (s.direction === '做空' && curP >= s.stop)) {
+            statusBanner = `<div class="mb-3 p-2 rounded bg-rose-900/80 border border-rose-500 text-xs text-rose-200 font-bold">❌ 最新價 $${curP.toFixed(2)} (${curDate}) 已觸發停損價 ($${s.stop})，此設定已失效！</div>`;
+          } else {
+            const dist = (((curP - s.entryAvg) / s.entryAvg) * 100).toFixed(2);
+            statusBanner = `<div class="mb-3 p-2 rounded bg-gray-900 border border-gray-700 text-xs text-blue-300 font-mono">最新價 $${curP.toFixed(2)} (${curDate})｜距離進場均價 ($${s.entryAvg})：${dist}%</div>`;
+          }
+
+          const badgeCls = s.direction === '做多' ? 'bg-emerald-900/60 text-emerald-300 border-emerald-600' : 'bg-rose-900/60 text-rose-300 border-rose-600';
+          setupsEl.innerHTML += `
+            <div class="card rounded-lg p-4 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between border-b border-gray-800 pb-2.5 mb-3">
+                  <div class="flex items-center gap-2">
+                    <span class="px-2 py-0.5 text-xs font-mono rounded bg-gray-800 text-gray-300">R:R 排名 #${s.rank}</span>
+                    <h4 class="font-bold text-white text-base">${s.ticker} — ${s.strategy}</h4>
+                  </div>
+                  <span class="px-2.5 py-0.5 text-xs font-bold rounded border ${badgeCls}">${s.direction}</span>
+                </div>
+                ${statusBanner}
+                <div class="grid grid-cols-2 gap-2 text-xs mb-3">
+                  <div class="p-2.5 rounded bg-gray-900 border border-gray-800"><div class="text-gray-400">建議進場區間</div><div class="text-white font-semibold mt-0.5">$${s.entryMin} – $${s.entryMax}</div></div>
+                  <div class="p-2.5 rounded bg-gray-900 border border-gray-800"><div class="text-gray-400">停損位置</div><div class="text-rose-400 font-semibold mt-0.5">$${s.stop}</div></div>
+                  <div class="p-2.5 rounded bg-gray-900 border border-gray-800"><div class="text-gray-400">第一目標 (T1)</div><div class="text-emerald-400 font-semibold mt-0.5">$${s.t1}（${s.rr1}）</div></div>
+                  <div class="p-2.5 rounded bg-gray-900 border border-gray-800"><div class="text-gray-400">第二目標 (T2)</div><div class="text-emerald-300 font-semibold mt-0.5">$${s.t2}（${s.rr2}）</div></div>
+                </div>
+              </div>
+              <div class="text-[11px] text-gray-400 border-t border-gray-800 pt-2">
+                <strong>停損依據：</strong>${s.stopReason}
+              </div>
+            </div>
+          `;
+        });
+    }
+
+    // ==================== 4. 持倉勝率模擬器邏輯 ====================
+    function onTickerChange() {
+      const t = document.getElementById('posTicker').value;
+      const liveP = liveQuotes[t] && liveQuotes[t].c ? liveQuotes[t].c : keyStructureDB[t].baseClose;
+      document.getElementById('posCurrent').value = liveP.toFixed(2);
+    }
+
+    function loadSamplePosition(ticker) {
+      document.getElementById('posTicker').value = ticker;
+      const curP = liveQuotes[ticker] ? liveQuotes[ticker].c : keyStructureDB[ticker].baseClose;
+      document.getElementById('posCurrent').value = curP.toFixed(2);
+      if (ticker === 'NVDA') {
+        document.getElementById('posDir').value = 'LONG';
+        document.getElementById('posShares').value = 100;
+        document.getElementById('posEntry').value = 214.50;
+        document.getElementById('posTarget').value = 238.00;
+        document.getElementById('posStop').value = 209.50;
+      } else if (ticker === 'TSLA') {
+        document.getElementById('posDir').value = 'LONG';
+        document.getElementById('posShares').value = 50;
+        document.getElementById('posEntry').value = 353.50;
+        document.getElementById('posTarget').value = 385.00;
+        document.getElementById('posStop').value = 346.00;
+      } else if (ticker === 'MU') {
+        document.getElementById('posDir').value = 'SHORT';
+        document.getElementById('posShares').value = 20;
+        document.getElementById('posEntry').value = 935.00;
+        document.getElementById('posTarget').value = 800.00;
+        document.getElementById('posStop').value = 965.00;
+      }
+      runPositionSimulation();
+    }
+
+    function runPositionSimulation() {
+      const ticker = document.getElementById('posTicker').value;
+      const dir = document.getElementById('posDir').value;
+      const shares = parseFloat(document.getElementById('posShares').value);
+      const entry = parseFloat(document.getElementById('posEntry').value);
+      const current = parseFloat(document.getElementById('posCurrent').value);
+      const target = parseFloat(document.getElementById('posTarget').value);
+      const stop = parseFloat(document.getElementById('posStop').value);
+      const box = document.getElementById('sim-result-box');
+
+      if (isNaN(shares) || isNaN(entry) || isNaN(current) || isNaN(target) || isNaN(stop) || shares <= 0) {
+        box.innerHTML = `<div class="p-3 rounded bg-amber-950/60 border border-amber-600 text-xs text-amber-200"><strong>【規則 2 標示】</strong>資料不足，需要我補充：完整持倉股數、成本價、現價、目標價與停損價。</div>`;
+        return;
+      }
+
+      const pnlPerShare = dir === 'LONG' ? (current - entry) : (entry - current);
+      const totalPnl = pnlPerShare * shares;
+      const pnlPct = (pnlPerShare / entry) * 100;
+      const initReward = Math.abs(target - entry);
+      const initRisk = Math.abs(entry - stop);
+      const initRR = initReward / initRisk;
+      const beWinRate = (1 / (1 + initRR)) * 100;
+
+      const remReward = dir === 'LONG' ? (target - current) : (current - target);
+      const remRisk = dir === 'LONG' ? (current - stop) : (stop - current);
+      const remRR = (remRisk > 0 && remReward > 0) ? (remReward / remRisk) : 0;
+      const remBeWin = remRR > 0 ? (1 / (1 + remRR)) * 100 : 100;
+
+      const db = keyStructureDB[ticker];
+      let score = 55;
+      if (dir === 'LONG' && stop < db.majorSupport) score += 10;
+      if (dir === 'LONG' && ticker === 'MU') score -= 20;
+      if (dir === 'SHORT' && ticker === 'MU') score += 15;
+      if (remRR >= 2.0) score += 8;
+      score = Math.max(15, Math.min(85, score));
+
+      box.innerHTML = `
+        <div class="p-4 rounded bg-gray-900 border border-indigo-500/50 text-xs">
+          <div class="font-bold text-white mb-3">【${ticker} ${dir === 'LONG' ? '做多' : '做空'} ${shares} 股】實時損益：
+            <span class="${totalPnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${totalPnl >= 0 ? '+' : ''}$${totalPnl.toFixed(2)} (${pnlPct.toFixed(2)}%)</span>
+            ｜原始 R:R：${initRR.toFixed(2)} : 1（兩平勝率門檻 ${beWinRate.toFixed(1)}%）
+            ｜現價剩餘 R:R：${remRR > 0 ? remRR.toFixed(2) + ' : 1（需勝率 ' + remBeWin.toFixed(1) + '%）' : '已觸及目標或停損'}
+            ｜結構評分：${score}%
+          </div>
+          <div class="text-rose-300">
+            <strong>【規則 4 倉位失效條件】</strong>當現價突破/跌破停損價 $${stop.toFixed(2)} 或結構防線 $${db.majorSupport.toFixed(2)} 時，此筆倉位設定即刻失效。
+          </div>
+        </div>
+      `;
+    }
+
+    function saveCurrentPositionToList() {
+      const ticker = document.getElementById('posTicker').value;
+      const dir = document.getElementById('posDir').value;
+      const shares = parseFloat(document.getElementById('posShares').value);
+      const entry = parseFloat(document.getElementById('posEntry').value);
+      const current = parseFloat(document.getElementById('posCurrent').value);
+      const target = parseFloat(document.getElementById('posTarget').value);
+      const stop = parseFloat(document.getElementById('posStop').value);
+      if (isNaN(shares) || shares <= 0) return;
+      const saved = JSON.parse(localStorage.getItem('my_saved_positions') || '[]');
+      saved.push({ id: Date.now(), ticker, dir, shares, entry, current, target, stop });
+      localStorage.setItem('my_saved_positions', JSON.stringify(saved));
+      renderSavedPositions();
+    }
+
+    function clearSavedPositions() {
+      localStorage.removeItem('my_saved_positions');
+      renderSavedPositions();
+    }
+
+    function renderSavedPositions() {
+      const container = document.getElementById('saved-positions-box');
+      const saved = JSON.parse(localStorage.getItem('my_saved_positions') || '[]');
+      if (saved.length === 0) {
+        container.innerHTML = `<div class="text-xs text-gray-500">尚未儲存持倉清單。</div>`;
+        return;
+      }
+      const rows = saved.map(p => {
+        const liveP = liveQuotes[p.ticker] ? liveQuotes[p.ticker].c : p.current;
+        const pnl = (p.dir === 'LONG' ? (liveP - p.entry) : (p.entry - liveP)) * p.shares;
+        return `<div class="flex justify-between items-center py-1.5 border-b border-gray-800 text-xs">
+          <span><strong>${p.ticker}</strong> (${p.dir === 'LONG' ? '做多' : '做空'} ${p.shares}股)｜成本 $${p.entry} → 最新價 <strong class="text-blue-300">$${liveP.toFixed(2)}</strong></span>
+          <span class="${pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'} font-bold">${pnl >= 0 ? '+' : ''}$${pnl.toFixed(1)}</span>
+        </div>`;
+      }).join('');
+      container.innerHTML = `<div class="text-xs font-bold text-gray-400 mb-2">已存持倉實時監控：</div>${rows}`;
+    }
+
+    function loadChart(symbol) {
+      const container = document.getElementById('tv-chart-container');
+      container.innerHTML = '';
+      const script = document.createElement('script');
+      script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+      script.async = true;
+      script.innerHTML = JSON.stringify({
+        "autosize": true, "symbol": symbol, "interval": "D", "timezone": "America/New_York",
+        "theme": "dark", "style": "1", "locale": "zh_TW", "enable_publishing": false,
+        "hide_top_toolbar": false, "save_image": false,
+        "studies": ["RSI@tv-basicstudies", "MASimple@tv-basicstudies"]
+      });
+      container.appendChild(script);
+    }
+
+    function saveApiKeyAndFetch() {
+      const val = document.getElementById('apiKeyInput').value.trim();
+      if (val) {
+        localStorage.setItem('finnhub_api_key', val);
+        autoSyncMarketData();
+        if (refreshTimer) clearInterval(refreshTimer);
+        refreshTimer = setInterval(autoSyncMarketData, 30000);
+      }
+    }
+
+    function setFilter(ticker) {
+      currentFilter = ticker;
+      renderAll();
+      if (ticker !== 'ALL') loadChart(`NASDAQ:${ticker}`);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const savedKey = localStorage.getItem('finnhub_api_key');
+      if (savedKey) document.getElementById('apiKeyInput').value = savedKey;
+      autoSyncMarketData();
+      refreshTimer = setInterval(autoSyncMarketData, 60000);
+      loadChart('NASDAQ:NVDA');
+    });
+  </script>
+</body>
+</html>
