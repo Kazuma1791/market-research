@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>個人市場研究實戰終端 (含持倉勝率模擬器) | NVDA · TSLA · MU</title>
+  <title>個人市場研究實戰終端 (全自動更新版) | NVDA · TSLA · MU</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     body { background-color: #090d16; color: #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
@@ -41,20 +41,21 @@
     </div>
   </div>
 
-  <!-- 頂部控制中心與規則聲明 -->
+  <!-- 頂部控制中心與自動更新引擎狀態 -->
   <header class="max-w-7xl mx-auto mb-6 card rounded-lg p-5">
     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 border-b border-gray-800 pb-4">
       <div>
         <div class="flex items-center gap-2">
-          <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 pulse-dot"></span>
-          <h1 class="text-xl md:text-2xl font-bold text-white">個人市場研究終端（實時數據 + 持倉勝率模擬版）</h1>
+          <span id="statusDot" class="w-2.5 h-2.5 rounded-full bg-amber-400 pulse-dot"></span>
+          <h1 class="text-xl md:text-2xl font-bold text-white">個人市場研究終端（自動抓取最新行情版）</h1>
         </div>
-        <p class="text-xs text-gray-400 mt-1">
-          研究基準日：2026-10-16 美股收盤｜實時串流：TradingView 組件 + Finnhub 即時 API 雙引擎
+        <p id="globalDataTimestamp" class="text-xs text-emerald-400 font-mono mt-1">
+          正在自動連線抓取最新交易日行情數據...
         </p>
       </div>
 
       <div class="flex flex-wrap gap-2">
+        <button onclick="autoSyncMarketData()" class="px-3 py-1.5 text-xs font-bold rounded bg-emerald-600 text-white hover:bg-emerald-500">🔄 立即重新抓取最新行情</button>
         <button onclick="setFilter('ALL')" class="px-3 py-1.5 text-xs font-semibold rounded bg-blue-600 text-white hover:bg-blue-500">全部標的</button>
         <button onclick="setFilter('NVDA')" class="px-3 py-1.5 text-xs font-semibold rounded bg-gray-800 text-gray-200 hover:bg-gray-700">NVDA</button>
         <button onclick="setFilter('TSLA')" class="px-3 py-1.5 text-xs font-semibold rounded bg-gray-800 text-gray-200 hover:bg-gray-700">TSLA</button>
@@ -62,19 +63,36 @@
       </div>
     </div>
 
-    <!-- Finnhub 實時 API 控制台 -->
-    <div class="mt-4 p-3.5 rounded bg-gray-900 border border-gray-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
-      <div class="flex-1 text-xs">
-        <div class="font-bold text-blue-400 mb-1">【實時價位與突發新聞 API 引擎（Finnhub REST API）】</div>
-        <p class="text-gray-400">
-          輸入免費 <a href="https://finnhub.io/" target="_blank" class="underline text-blue-300">Finnhub API Key</a> 後，每 30 秒自動更新 NVDA / TSLA / MU 實時報價，並同步重算下方「我的持倉模擬器」之即時損益、剩餘風報比與失效警報。
-        </p>
+    <!-- 雙引擎設定區：免金鑰自動同步 + Finnhub API Key + 手動快速覆蓋 -->
+    <div class="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-3">
+      <!-- 左側：API 自動引擎 -->
+      <div class="p-3.5 rounded bg-gray-900 border border-gray-800 flex flex-col justify-between gap-2">
+        <div class="text-xs">
+          <div class="font-bold text-blue-400 mb-1">【引擎 1：Yahoo 免金鑰自動抓取 + Finnhub 實時 API】</div>
+          <p class="text-gray-400">
+            開啟網頁即自動嘗試抓取 Yahoo Finance 最新交易日收盤價與日期。若貼上免費 <a href="https://finnhub.io/" target="_blank" class="underline text-blue-300">Finnhub API Key</a>，則可啟用每 30 秒高速輪詢與外電新聞抓取。
+          </p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2 mt-1">
+          <input id="apiKeyInput" type="password" placeholder="選填：貼上 Finnhub API Key..." class="px-3 py-1.5 text-xs rounded bg-gray-950 border border-gray-700 text-white flex-1 focus:outline-none focus:border-blue-500" />
+          <button onclick="saveApiKeyAndFetch()" class="px-3 py-1.5 text-xs font-semibold rounded bg-blue-600 text-white hover:bg-blue-500">儲存金鑰並同步</button>
+        </div>
       </div>
-      <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
-        <input id="apiKeyInput" type="password" placeholder="貼上 Finnhub API Key..." class="px-3 py-1.5 text-xs rounded bg-gray-950 border border-gray-700 text-white w-52 focus:outline-none focus:border-blue-500" />
-        <button onclick="saveApiKeyAndFetch()" class="px-3 py-1.5 text-xs font-semibold rounded bg-emerald-600 text-white hover:bg-emerald-500">儲存並同步</button>
-        <button onclick="fetchAllLiveData()" class="px-3 py-1.5 text-xs font-semibold rounded bg-gray-800 text-gray-200 hover:bg-gray-700">立即刷新</button>
-        <span id="syncStatus" class="text-[11px] text-amber-400 font-mono">狀態：待輸入 API Key</span>
+
+      <!-- 右側：3 秒手動報價覆蓋面板（徹底解決任何網路阻擋問題） -->
+      <div class="p-3.5 rounded bg-gray-900 border border-gray-800 flex flex-col justify-between gap-2">
+        <div class="text-xs">
+          <div class="font-bold text-amber-400 mb-1">【引擎 2：手動報價快速覆蓋器（防網路阻擋備援）】</div>
+          <p class="text-gray-400">
+            若網路環境阻擋外部免費 API，可直接輸入看盤軟體（如富途牛牛）最新報價，點擊更新即可覆蓋全站日期與運算：
+          </p>
+        </div>
+        <div class="grid grid-cols-4 gap-2 items-center mt-1 text-xs">
+          <input id="manNVDA" type="number" step="0.01" placeholder="NVDA 現價" class="px-2 py-1.5 rounded bg-gray-950 border border-gray-700 text-white" />
+          <input id="manTSLA" type="number" step="0.01" placeholder="TSLA 現價" class="px-2 py-1.5 rounded bg-gray-950 border border-gray-700 text-white" />
+          <input id="manMU" type="number" step="0.01" placeholder="MU 現價" class="px-2 py-1.5 rounded bg-gray-950 border border-gray-700 text-white" />
+          <button onclick="applyManualPrices()" class="px-2 py-1.5 font-bold rounded bg-amber-600 hover:bg-amber-500 text-white">一鍵覆蓋全站</button>
+        </div>
       </div>
     </div>
 
@@ -84,31 +102,27 @@
         <span class="font-bold text-amber-400">【規則 6 免責聲明】</span>你提供的是研究整理，不是投資建議，最終決策由投資人自己負責。
       </div>
       <div class="p-2.5 rounded bg-gray-900/70 border border-gray-800 text-gray-300">
-        <span class="font-bold text-blue-400">【規則 3 來源回溯】</span>靜態基準價回溯自 2026-10-16 NASDAQ 官方收盤與財報；持倉運算回溯自使用者輸入參數與標準期望值公式。
+        <span class="font-bold text-blue-400">【規則 3 來源回溯】</span>結構支撐壓力基準回溯自 2026-10-16 NASDAQ 收盤；最新動態報價回溯自 Yahoo Finance / Finnhub API 或使用者手動輸入。
       </div>
     </div>
   </header>
 
-  <!-- ==================== 新增功能：個人持倉輸入與勝率／風報比模擬分析器 ==================== -->
+  <!-- 個人持倉輸入與勝率／風報比模擬分析器 -->
   <section class="max-w-7xl mx-auto mb-8 card rounded-lg p-5 border-2 border-indigo-500/40 shadow-xl">
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-gray-800 pb-3 mb-4">
       <div>
         <h2 class="text-lg font-bold text-white flex items-center gap-2">
           <span class="px-2 py-0.5 text-xs rounded bg-indigo-600 text-white">實戰工具</span>
-          個人目前倉位輸入與勝率／風報比量化模擬器
+          個人目前倉位輸入與勝率／風報比量化模擬器（自動代入最新現價）
         </h2>
-        <p class="text-xs text-gray-400 mt-1">
-          輸入你目前的持倉成本、股數、目標價與停損價，系統將依據 2026-10-16 關鍵結構位與實時現價，自動計算「原始 R:R」、「現價剩餘 R:R」、「損益兩平最低勝率門檻」與「技術結構勝率診斷」。
-        </p>
       </div>
       <div class="flex gap-2">
-        <button onclick="loadSamplePosition('NVDA')" class="px-2.5 py-1 text-xs rounded bg-gray-800 hover:bg-gray-700 text-blue-300 border border-gray-700">代入 NVDA 範例倉位</button>
-        <button onclick="loadSamplePosition('TSLA')" class="px-2.5 py-1 text-xs rounded bg-gray-800 hover:bg-gray-700 text-blue-300 border border-gray-700">代入 TSLA 範例倉位</button>
-        <button onclick="loadSamplePosition('MU')" class="px-2.5 py-1 text-xs rounded bg-gray-800 hover:bg-gray-700 text-blue-300 border border-gray-700">代入 MU 範例倉位</button>
+        <button onclick="loadSamplePosition('NVDA')" class="px-2.5 py-1 text-xs rounded bg-gray-800 hover:bg-gray-700 text-blue-300 border border-gray-700">代入 NVDA 範例</button>
+        <button onclick="loadSamplePosition('TSLA')" class="px-2.5 py-1 text-xs rounded bg-gray-800 hover:bg-gray-700 text-blue-300 border border-gray-700">代入 TSLA 範例</button>
+        <button onclick="loadSamplePosition('MU')" class="px-2.5 py-1 text-xs rounded bg-gray-800 hover:bg-gray-700 text-blue-300 border border-gray-700">代入 MU 範例</button>
       </div>
     </div>
 
-    <!-- 倉位輸入表單 -->
     <div class="grid grid-cols-2 md:grid-cols-7 gap-3 mb-4 text-xs">
       <div>
         <label class="block text-gray-400 mb-1">標的代號</label>
@@ -127,23 +141,23 @@
       </div>
       <div>
         <label class="block text-gray-400 mb-1">持倉股數 (股)</label>
-        <input id="posShares" type="number" step="1" value="100" placeholder="例如 100" class="w-full px-2.5 py-2 rounded bg-gray-900 border border-gray-700 text-white" />
+        <input id="posShares" type="number" step="1" value="100" class="w-full px-2.5 py-2 rounded bg-gray-900 border border-gray-700 text-white" />
       </div>
       <div>
         <label class="block text-gray-400 mb-1">平均成本價 ($)</label>
-        <input id="posEntry" type="number" step="0.01" value="214.50" placeholder="進場均價" class="w-full px-2.5 py-2 rounded bg-gray-900 border border-gray-700 text-white" />
+        <input id="posEntry" type="number" step="0.01" value="214.50" class="w-full px-2.5 py-2 rounded bg-gray-900 border border-gray-700 text-white" />
       </div>
       <div>
-        <label class="block text-gray-400 mb-1">目前現價 ($)</label>
-        <input id="posCurrent" type="number" step="0.01" value="214.13" placeholder="自動或手動" class="w-full px-2.5 py-2 rounded bg-gray-900 border border-blue-600/70 text-blue-300 font-mono" />
+        <label class="block text-gray-400 mb-1">最新現價 ($)</label>
+        <input id="posCurrent" type="number" step="0.01" value="214.13" class="w-full px-2.5 py-2 rounded bg-gray-900 border border-blue-600/70 text-blue-300 font-mono" />
       </div>
       <div>
         <label class="block text-gray-400 mb-1">預計目標價 ($)</label>
-        <input id="posTarget" type="number" step="0.01" value="238.00" placeholder="出場目標" class="w-full px-2.5 py-2 rounded bg-gray-900 border border-emerald-700/70 text-emerald-300" />
+        <input id="posTarget" type="number" step="0.01" value="238.00" class="w-full px-2.5 py-2 rounded bg-gray-900 border border-emerald-700/70 text-emerald-300" />
       </div>
       <div>
         <label class="block text-gray-400 mb-1">預計停損價 ($)</label>
-        <input id="posStop" type="number" step="0.01" value="209.50" placeholder="停損防線" class="w-full px-2.5 py-2 rounded bg-gray-900 border border-rose-700/70 text-rose-300" />
+        <input id="posStop" type="number" step="0.01" value="209.50" class="w-full px-2.5 py-2 rounded bg-gray-900 border border-rose-700/70 text-rose-300" />
       </div>
     </div>
 
@@ -152,24 +166,21 @@
         立即計算倉位勝率與風報比
       </button>
       <button onclick="saveCurrentPositionToList()" class="px-4 py-2 text-xs font-semibold rounded bg-emerald-700 hover:bg-emerald-600 text-white">
-        + 儲存至我的持倉清單（本機記憶）
+        + 儲存至我的持倉清單
       </button>
       <button onclick="clearSavedPositions()" class="px-3 py-2 text-xs rounded bg-gray-800 hover:bg-gray-700 text-gray-400">
-        清空已存清單
+        清空清單
       </button>
     </div>
 
-    <!-- 單筆模擬詳細報告輸出區 -->
     <div id="sim-result-box" class="mt-4"></div>
-
-    <!-- 已儲存的多筆持倉追蹤表 -->
     <div id="saved-positions-box" class="mt-5 pt-4 border-t border-gray-800"></div>
   </section>
 
   <!-- 實時互動技術分析圖表區 -->
   <section class="max-w-7xl mx-auto mb-6 card rounded-lg p-4">
     <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
-      <h2 class="text-sm font-bold text-white">【技術面實時 K 線監控】TradingView 即時圖表（含 RSI 與均線）</h2>
+      <h2 class="text-sm font-bold text-white">【技術面實時 K 線監控】TradingView 官方即時圖表（永遠保持最新 K 線）</h2>
       <div class="flex gap-2">
         <button onclick="loadChart('NASDAQ:NVDA')" class="px-2.5 py-1 text-xs rounded bg-gray-800 hover:bg-blue-600 text-white">切換 NVDA 圖表</button>
         <button onclick="loadChart('NASDAQ:TSLA')" class="px-2.5 py-1 text-xs rounded bg-gray-800 hover:bg-blue-600 text-white">切換 TSLA 圖表</button>
@@ -182,7 +193,7 @@
   <!-- 第一部分：最新關鍵價位與消息面深度分析 -->
   <section class="max-w-7xl mx-auto mb-8">
     <h2 class="text-lg font-bold text-white mb-4 border-l-4 border-blue-500 pl-3">
-      一、NVDA · TSLA · MU 最新關鍵價位與消息面變化（含實時價位比對）
+      一、NVDA · TSLA · MU 最新關鍵價位與動態比對（自動更新收盤價與日期）
     </h2>
     <div id="analysis-container" class="grid grid-cols-1 gap-6"></div>
   </section>
@@ -190,573 +201,270 @@
   <!-- 第二部分：高勝率交易設定 -->
   <section class="max-w-7xl mx-auto mb-12">
     <h2 class="text-lg font-bold text-white mb-4 border-l-4 border-emerald-500 pl-3">
-      二、高勝率交易設定清單（依第二目標風險報酬比 R:R 由高至低排序）
+      二、高勝率交易設定清單（自動比對最新現價是否進入區間或觸發停損）
     </h2>
     <div id="setups-container" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
   </section>
 
   <script>
-    // ==================== 1. 基準研究資料庫（2026-10-16 收盤基準） ====================
+    // ==================== 1. 結構基準與動態資料庫 ====================
     const keyStructureDB = {
-      NVDA: {
-        name: "英偉達",
-        baseClose: 214.13,
-        baseDate: "2026-10-16",
-        supportZone: [213.32, 214.50],
-        majorSupport: 210.00,
-        deepSupport: 200.09,
-        resistZone: [224.50, 227.00],
-        majorResist: 230.86,
-        peakResist: 239.24,
-        bias: "跌深觸及 $213.32 平台支撐，守穩 $210.00 具超賣反彈優勢；反抽至 $225–$227 則面臨頸線反壓。"
-      },
-      TSLA: {
-        name: "特斯拉",
-        baseClose: 354.72,
-        baseDate: "2026-10-16",
-        supportZone: [349.33, 354.11],
-        majorSupport: 346.00,
-        deepSupport: 335.00,
-        resistZone: [375.23, 378.03],
-        majorResist: 382.70,
-        peakResist: 385.50,
-        bias: "10/16 於 $349.33 拉出 $5.39 長下影線守住 $354.11 前高平台，守穩 $346.00 偏多看待，低檔追空風險極高。"
-      },
-      MU: {
-        name: "美光科技",
-        baseClose: 878.84,
-        baseDate: "2026-10-16",
-        supportZone: [875.00, 880.00],
-        majorSupport: 875.00,
-        deepSupport: 800.00,
-        resistZone: [925.00, 945.00],
-        majorResist: 953.19,
-        peakResist: 965.00,
-        bias: "單月重挫 19.92% 且 10/16 收近光腳長陰線，5/10 日線陡峭下彎，反抽順勢做空勝率高，左側摸底做多極易遭止損。"
-      }
+      NVDA: { name: "英偉達", baseClose: 214.13, baseDate: "2026-10-16", supportZone: [213.32, 214.50], majorSupport: 210.00, peakResist: 239.24, resistZone: [224.50, 227.00], majorResist: 230.86 },
+      TSLA: { name: "特斯拉", baseClose: 354.72, baseDate: "2026-10-16", supportZone: [349.33, 354.11], majorSupport: 346.00, peakResist: 385.50, resistZone: [375.23, 378.03], majorResist: 382.70 },
+      MU:   { name: "美光科技", baseClose: 878.84, baseDate: "2026-10-16", supportZone: [875.00, 880.00], majorSupport: 875.00, peakResist: 965.00, resistZone: [925.00, 945.00], majorResist: 953.19 }
     };
 
     const marketAnalysis = [
       {
-        ticker: "NVDA", name: "英偉達", baseClose: 214.13, baseLow: 213.32, baseDate: "2026-10-16",
-        trendSummary: "跌深回測前波平台支撐，短線進入技術性超賣區",
+        ticker: "NVDA", name: "英偉達",
+        archiveClose: 214.13, archiveLow: 213.32, archiveDate: "2026-10-16",
+        trendSummary: "關鍵支撐平台攻防與超賣反彈結構監控",
         levels: {
           r2: "$230.86 – $239.24（10/01 起跌平台高點與 10/06 波段高點）",
           r1: "$224.50 – $227.00（10/12–10/14 跌破之箱型頸線反壓區）",
           s1: "$213.30 – $214.50（10/16 盤中低點 $213.32 與前波整理平台下緣）",
           s2: "$200.09 – $209.50（$210 整數心理關卡與 2026 夏季平台低點區）",
-          bullStop: 210.00, bearStop: 231.00
+          bullStop: 210.00, bearStop: 231.00, s1Val: 213.32, r1Val: 225.50
         },
-        source: "NASDAQ 官方收盤紀錄（2026-10-01 至 2026-10-16）、NVDA 季度財報（TTM EPS $7.91）、美國財政部 10 年期公債殖利率報價（2026-10-16）",
-        missingData: "2026-10-16 盤後至最新交易時段之 SEC Form 4 內部人交易申報、CoWoS 封裝最新排產變動",
+        source: "結構基準回溯自 2026-10-16 NASDAQ 收盤與 NVDA 財報（TTM EPS $7.91）；最新現價由實時引擎動態抓取。",
+        missingData: "最新交易日盤後之機構大額暗池交易明細與最新 CoWoS 排產修正數據",
         points: [
-          { type: "技術面", cls: "tag-tech", date: "2026-10-16", text: "自 10/06 高點 $239.24 連續 8 個交易日回檔至 10/16 低點 $213.32（波段跌幅 10.83%），日線動能進入超賣區後收於 $214.13，初步守住前波平台。" },
-          { type: "基本面", cls: "tag-fund", date: "2026-10-16", text: "以收盤價 $214.13 與 TTM EPS $7.91 計算，滾動本益比（P/E）回落至 27.07 倍，位於近一年估值區間偏下緣。" },
-          { type: "消息面", cls: "tag-news", date: "2026-10-15", text: "微軟發表自研 Maia 300 AI 晶片預計 2027 年才量產，短期大型雲端客戶對 NVDA 核心算力採購結構未變。" },
-          { type: "情緒面", cls: "tag-sent", date: "2026-10-16", text: "美國 10 年期公債殖利率處於 5.19% 高位，壓抑高估值科技股追價意願，反彈至頸線易遇解套賣壓。" }
+          { type: "技術面", cls: "tag-tech", date: "2026-10-16 結構基準", text: "自 10/06 高點 $239.24 回檔至 10/16 低點 $213.32（波段跌幅 10.83%），$210.00–$213.32 為多頭關鍵防守區。" },
+          { type: "基本面", cls: "tag-fund", date: "2026-10-16 財報基準", text: "TTM EPS 為 $7.91（於 $214.13 時滾動 P/E 為 27.07 倍），系統將依最新現價動態重算即時 P/E。" },
+          { type: "消息面", cls: "tag-news", date: "2026-10-15", text: "微軟發表自研 Maia 300 晶片預計 2027 年量產，短期大型雲端客戶對 NVDA 採購結構未變。" }
         ],
         invalidations: [
           "【技術面反向訊號】日 K 線收盤價實體跌破 $210.00 且單日成交量高於 30 日均量（1.09 億股），支撐破位轉為主跌段。",
           "【情緒面反向訊號】反彈觸及 $218.00–$220.00 即收長上影線陰線且日量低於 1.09 億股，代表低接買盤動能衰竭。",
-          "【消息面反向訊號】若股價帶量（逾 1.3 億股）強勢收復 $231.00，或 CSP 雲端巨頭宣布追加資本支出，則反抽偏空判斷失效。"
+          "【消息面反向訊號】若股價帶量（逾 1.3 億股）強勢收復 $231.00，則反抽偏空判斷失效。"
         ]
       },
       {
-        ticker: "TSLA", name: "特斯拉", baseClose: 354.72, baseLow: 349.33, baseDate: "2026-10-16",
-        trendSummary: "$350 整數關卡收出 $5.39 長下影線，展現壓力轉支撐力道",
+        ticker: "TSLA", name: "特斯拉",
+        archiveClose: 354.72, archiveLow: 349.33, archiveDate: "2026-10-16",
+        trendSummary: "$350 整數關卡長下影線防守與壓力轉支撐結構監控",
         levels: {
           r2: "$382.70 – $385.50（10/09 波段收盤高點與 10/16 盤中高點）",
           r1: "$375.23 – $378.03（10/12–10/13 震盪整理中繼頸線區）",
           s1: "$349.33 – $354.11（10/16 長下影線低點與 10 月初突破平台高點）",
           s2: "$346.00（10/16 低點下方 0.95% 極限停損防線）",
-          bullStop: 346.00, bearStop: 385.50
+          bullStop: 346.00, bearStop: 385.50, s1Val: 349.33, r1Val: 375.23
         },
-        source: "NASDAQ 官方收盤紀錄（2026-10-16 開盤 $369.15、最低 $349.33、收盤 $354.72）",
-        missingData: "最新一季扣除碳權後之汽車本業毛利率實際公布值、10 月中旬最新週度上牌量數據，以及 Robotaxi 監管審批最新公告",
+        source: "結構基準回溯自 2026-10-16 NASDAQ 收盤紀錄；最新現價由實時引擎動態抓取。",
+        missingData: "最新一季扣除碳權後之汽車本業毛利率實際公布值、最新一週中國與歐美市場保險上牌量數據",
         points: [
-          { type: "技術面", cls: "tag-tech", date: "2026-10-16", text: "10/16 盤中自 $369.15 急挫測試 $349.33 後獲買盤拉升收於 $354.72，留下 $5.39 長下影線，精準守住 10 月初突破平台高點 $354.11。" },
-          { type: "情緒面", cls: "tag-sent", date: "2026-10-16", text: "自 10/09 高點 $382.70 連跌 5 日後，短線停損賣壓於跌破 $350 瞬間集中釋放，1.4 兆美元市值關卡浮現低接承接盤。" }
+          { type: "技術面", cls: "tag-tech", date: "2026-10-16 結構基準", text: "10/16 測試 $349.33 後拉升收於 $354.72，留 $5.39 長下影線守住 10 月初平台高點 $354.11。" },
+          { type: "情緒面", cls: "tag-sent", date: "2026-10-16 結構基準", text: "跌破 $350 瞬間釋放短線停損賣壓，守穩 $346.00 前維持偏多反彈結構。" }
         ],
         invalidations: [
-          "【技術面反向訊號】開盤直接跳空跌破 $349.00 且首小時無法站回 $350.00，長下影線防守失效並轉為套牢反壓。",
+          "【技術面反向訊號】跌破 $349.00 且無法站回 $350.00，長下影線防守失效並轉為套牢反壓。",
           "【技術面反向訊號】反彈無法突破 $365.00 且連續 3 日高點下移形成下跌旗形（Bear Flag）。",
-          "【基本面反向訊號】最新公布之汽車毛利率或交車指引低於市場預期，或宣布新一輪全面降價促銷。"
+          "【基本面反向訊號】最新公布之汽車毛利率或交車指引低於市場預期。"
         ]
       },
       {
-        ticker: "MU", name: "美光科技", baseClose: 878.84, baseLow: 875.00, baseDate: "2026-10-16",
-        trendSummary: "單月重挫 19.92% 處於空頭主跌段，收近光腳長陰線尚未見底",
+        ticker: "MU", name: "美光科技",
+        archiveClose: 878.84, archiveLow: 875.00, archiveDate: "2026-10-16",
+        trendSummary: "跌破千元大關空頭主跌段與反抽阻力監控",
         levels: {
           r2: "$953.19 – $965.00（10/13 收盤密集成交區與空頭結構防守線）",
           r1: "$925.00 – $945.00（跌破千元大關後之下降通道反抽壓力帶）",
-          s1: "$875.00（10/16 盤中最低點，目前無右側止跌訊號）",
+          s1: "$875.00（10/16 盤中最低點，需觀察是否出現右側止跌訊號）",
           s2: "$800.00（下方深層整數心理支撐關卡）",
-          bullStop: 875.00, bearStop: 965.00
+          bullStop: 875.00, bearStop: 965.00, s1Val: 875.00, r1Val: 935.00
         },
-        source: "NASDAQ 官方收盤紀錄（2026-10-01 收 $1,097.39、2026-10-16 收 $878.84）、MU 季度財報數據",
-        missingData: "TrendForce 最新一週 DRAM / NAND Flash 現貨與合約報價實際漲跌幅數據，以及三大記憶體原廠最新產能調控聲明",
+        source: "結構基準回溯自 2026-10-16 NASDAQ 收盤紀錄；最新現價由實時引擎動態抓取。",
+        missingData: "TrendForce 最新一週 DRAM / NAND Flash 現貨與合約報價實際漲跌幅數據",
         points: [
-          { type: "技術面", cls: "tag-tech", date: "2026-10-16", text: "自 10/01 收盤 $1,097.39 單邊崩跌至 10/16 收盤 $878.84（累計跌幅 19.92%）；10/16 收近光腳陰線（低點 $875.00），5 日與 10 日均線陡峭下彎。" },
-          { type: "基本面", cls: "tag-fund", date: "2026-10-16", text: "滾動本益比（P/E）約 11.82 倍，反映記憶體景氣循環高點預期下修之估值折價，不能單憑低 P/E 進行左側摸底。" },
-          { type: "消息面", cls: "tag-news", date: "2026-10-16", text: "市場擔憂明年度 HBM 與傳統 DRAM 產能開出後供過於求，機構資金於跌破千元大關後持續調節。" }
+          { type: "技術面", cls: "tag-tech", date: "2026-10-16 結構基準", text: "自 10/01 收盤 $1,097.39 跌至 10/16 收盤 $878.84，短中期均線下彎，未收復 $965.00 前維持反抽偏空結構。" },
+          { type: "基本面", cls: "tag-fund", date: "2026-10-16 財報基準", text: "滾動本益比約 11.82 倍，反映記憶體景氣循環高點預期下修之估值折價。" }
         ],
         invalidations: [
-          "【技術面反向訊號】日 K 線出現帶量長紅吞噬線直接收復 $960.00–$965.00，宣告單邊下跌趨勢終結。",
-          "【技術面反向訊號】於 $875.00–$900.00 連續 3 個交易日縮量不破底，且日線 RSI 形成明確底背離。",
-          "【消息面反向訊號】主要記憶體原廠宣布聯合減產，或公告下一代 HBM 產能獲雲端客戶全數包銷且報價上調。"
+          "【技術面反向訊號】日 K 線帶量長紅吞噬直接收復 $960.00–$965.00，宣告單邊下跌趨勢終結。",
+          "【技術面反向訊號】於 $875.00–$900.00 連續 3 個交易日縮量不破底，且日線 RSI 形成底背離。",
+          "【消息面反向訊號】主要記憶體原廠宣布聯合減產或上調明年度 HBM 合約報價。"
         ]
       }
     ];
 
     const tradeSetups = [
-      {
-        rank: 1, ticker: "NVDA", direction: "做多", strategy: "關鍵支撐區超賣反彈",
-        entryMin: 213.50, entryMax: 215.50, entryAvg: 214.50,
-        t1: 226.00, t2: 238.00, stop: 209.50,
-        rr1: "2.30 : 1", rr2: "4.70 : 1", rrSort: 4.70,
-        stopReason: "【技術面｜2026-10-16】跌破 10/16 低點 $213.32 逾 1.7% 且失守 $210 整數關卡。"
-      },
-      {
-        rank: 2, ticker: "MU", direction: "做空", strategy: "跌破千元大關反抽順勢放空",
-        entryMin: 925.00, entryMax: 945.00, entryAvg: 935.00,
-        t1: 875.00, t2: 800.00, stop: 965.00,
-        rr1: "2.00 : 1", rr2: "4.50 : 1", rrSort: 4.50,
-        stopReason: "【技術面｜2026-10-16】突破 10/13 收盤價 $953.19 上方密集成交區約 1.2%。"
-      },
-      {
-        rank: 3, ticker: "TSLA", direction: "做多", strategy: "350 整數防線長下影線多頭防守",
-        entryMin: 352.00, entryMax: 355.00, entryAvg: 353.50,
-        t1: 375.00, t2: 385.00, stop: 346.00,
-        rr1: "2.87 : 1", rr2: "4.20 : 1", rrSort: 4.20,
-        stopReason: "【技術面｜2026-10-16】跌破 10/16 長下影線低點 $349.33 約 0.95%，低接買盤全數套牢。"
-      },
-      {
-        rank: 4, ticker: "NVDA", direction: "做空", strategy: "跌深反抽遇頸線反壓放空",
-        entryMin: 224.50, entryMax: 227.00, entryAvg: 225.50,
-        t1: 214.00, t2: 201.00, stop: 231.50,
-        rr1: "1.92 : 1", rr2: "4.08 : 1", rrSort: 4.08,
-        stopReason: "【技術面｜2026-10-16】突破 10/01 起跌平台高點 $230.86，下降通道結構失效。"
-      }
+      { rank: 1, ticker: "NVDA", direction: "做多", strategy: "關鍵支撐區超賣反彈", entryMin: 213.50, entryMax: 215.50, entryAvg: 214.50, t1: 226.00, t2: 238.00, stop: 209.50, rr1: "2.30 : 1", rr2: "4.70 : 1", rrSort: 4.70, stopReason: "【技術面】跌破 $213.32 低點且失守 $210 整數關卡。" },
+      { rank: 2, ticker: "MU", direction: "做空", strategy: "跌破千元大關反抽順勢放空", entryMin: 925.00, entryMax: 945.00, entryAvg: 935.00, t1: 875.00, t2: 800.00, stop: 965.00, rr1: "2.00 : 1", rr2: "4.50 : 1", rrSort: 4.50, stopReason: "【技術面】突破 10/13 收盤價 $953.19 上方密集成交區。" },
+      { rank: 3, ticker: "TSLA", direction: "做多", strategy: "350 整數防線長下影線多頭防守", entryMin: 352.00, entryMax: 355.00, entryAvg: 353.50, t1: 375.00, t2: 385.00, stop: 346.00, rr1: "2.87 : 1", rr2: "4.20 : 1", rrSort: 4.20, stopReason: "【技術面】跌破 10/16 長下影線低點 $349.33 約 0.95%。" },
+      { rank: 4, ticker: "NVDA", direction: "做空", strategy: "跌深反抽遇頸線反壓放空", entryMin: 224.50, entryMax: 227.00, entryAvg: 225.50, t1: 214.00, t2: 201.00, stop: 231.50, rr1: "1.92 : 1", rr2: "4.08 : 1", rrSort: 4.08, stopReason: "【技術面】突破 10/01 起跌平台高點 $230.86。" }
     ];
 
+    // 動態行情儲存池：{ NVDA: { c, h, l, pc, dp, dateStr, sourceName } }
     let liveQuotes = {};
-    let liveNews = {};
     let currentFilter = 'ALL';
     let refreshTimer = null;
 
-    // ==================== 2. 個人持倉模擬與勝率分析邏輯 ====================
-    function onTickerChange() {
-      const t = document.getElementById('posTicker').value;
-      const liveP = liveQuotes[t] && liveQuotes[t].c ? liveQuotes[t].c : keyStructureDB[t].baseClose;
-      document.getElementById('posCurrent').value = liveP;
-    }
+    // ==================== 2. 三合一全自動行情抓取引擎 ====================
+    // 引擎 A：免 API Key 自動透過 CORS 代理抓取 Yahoo Finance 最新收盤價與實際交易日期
+    async function fetchYahooZeroKey(ticker) {
+      const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=5d`;
+      const proxies = [
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`, `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`
+      ];
 
-    function loadSamplePosition(ticker) {
-      document.getElementById('posTicker').value = ticker;
-      if (ticker === 'NVDA') {
-        document.getElementById('posDir').value = 'LONG';
-        document.getElementById('posShares').value = 100;
-        document.getElementById('posEntry').value = 214.50;
-        document.getElementById('posCurrent').value = (liveQuotes.NVDA && liveQuotes.NVDA.c) ? liveQuotes.NVDA.c : 214.13;
-        document.getElementById('posTarget').value = 238.00;
-        document.getElementById('posStop').value = 209.50;
-      } else if (ticker === 'TSLA') {
-        document.getElementById('posDir').value = 'LONG';
-        document.getElementById('posShares').value = 50;
-        document.getElementById('posEntry').value = 353.50;
-        document.getElementById('posCurrent').value = (liveQuotes.TSLA && liveQuotes.TSLA.c) ? liveQuotes.TSLA.c : 354.72;
-        document.getElementById('posTarget').value = 385.00;
-        document.getElementById('posStop').value = 346.00;
-      } else if (ticker === 'MU') {
-        document.getElementById('posDir').value = 'SHORT';
-        document.getElementById('posShares').value = 20;
-        document.getElementById('posEntry').value = 935.00;
-        document.getElementById('posCurrent').value = (liveQuotes.MU && liveQuotes.MU.c) ? liveQuotes.MU.c : 878.84;
-        document.getElementById('posTarget').value = 800.00;
-        document.getElementById('posStop').value = 965.00;
+      for (const proxyUrl of proxies) {
+        try {
+          const res = await fetch(proxyUrl, { cache: "no-store" });
+          if (!res.ok) continue;
+          const data = await res.json();
+          const meta = data?.chart?.result?.[0]?.meta;
+          if (meta && meta.regularMarketPrice) {
+            const price = meta.regularMarketPrice;
+            const prev = meta.chartPreviousClose || meta.previousClose || price;
+            const dp = prev ? ((price - prev) / prev) * 100 : 0;
+            const dt = meta.regularMarketTime
+              ? new Date(meta.regularMarketTime * 1000).toISOString().split('T')[0]
+              : new Date().toISOString().split('T')[0];
+            return {
+              c: price,
+              h: meta.regularMarketDayHigh || price,
+              l: meta.regularMarketDayLow || price,
+              pc: prev,
+              dp: dp,
+              dateStr: dt,
+              sourceName: "Yahoo Finance 官方行情 (免金鑰自動同步)"
+            };
+          }
+        } catch (e) {
+          // 繼續嘗試下一個 Proxy
+        }
       }
-      runPositionSimulation();
+      return null;
     }
 
-    function evaluateStructureWinRate(ticker, dir, entry, current, target, stop, remRR) {
-      const db = keyStructureDB[ticker];
-      let score = 50; // 基準分 50%
-      let notes = [];
-      let invalidations = [];
-
-      if (dir === 'LONG') {
-        // 1. 檢查標的大結構方向
-        if (ticker === 'MU') {
-          score -= 22;
-          notes.push("【技術面｜2026-10-16】MU 處於單月重挫 19.92% 之單邊空頭主跌段（10/16 收 $878.84 近光腳陰線），目前無右側止跌結構，逆勢做多歷史被止損率逾 65%。");
-        } else {
-          score += 10;
-          notes.push(`【技術面｜${db.baseDate}】${ticker} 於 $${db.supportZone[0]}–$${db.supportZone[1]} 具備前波平台或長下影線承接支撐。`);
+    // 引擎 B：Finnhub API 抓取
+    async function fetchFinnhubWithKey(ticker, apiKey) {
+      try {
+        const res = await fetch(`https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${apiKey}`, { cache: "no-store" });
+        if (!res.ok) return null;
+        const q = await res.json();
+        if (q && q.c > 0) {
+          const dt = q.t ? new Date(q.t * 1000).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+          return {
+            c: q.c, h: q.h, l: q.l, pc: q.pc, dp: q.dp || 0,
+            dateStr: dt,
+            sourceName: "Finnhub 實時 API"
+          };
         }
+      } catch (e) {}
+      return null;
+    }
 
-        // 2. 檢查停損是否設在關鍵結構防線之外
-        if (stop < db.majorSupport) {
-          score += 10;
-          notes.push(`【技術面｜${db.baseDate}】你的停損價 ($${stop.toFixed(2)}) 設於關鍵結構支撐 ($${db.majorSupport.toFixed(2)}) 下方，具備良好抗雜訊洗盤保護。`);
-        } else {
-          score -= 12;
-          notes.push(`【技術面｜${db.baseDate}】你的停損價 ($${stop.toFixed(2)}) 高於關鍵結構支撐 ($${db.majorSupport.toFixed(2)})，極易在正常日內回測支撐時被掃出場。`);
+    // 總調度器：依序嘗試 Finnhub -> Yahoo 免金鑰 -> 本機手動覆蓋記憶
+    async function autoSyncMarketData() {
+      const statusEl = document.getElementById('globalDataTimestamp');
+      const dotEl = document.getElementById('statusDot');
+      statusEl.textContent = "正在自動同步 NVDA / TSLA / MU 最新交易日收盤與實時報價...";
+
+      const apiKey = localStorage.getItem('finnhub_api_key');
+      const manualSaved = JSON.parse(localStorage.getItem('manual_price_override') || '{}');
+      const tickers = ['NVDA', 'TSLA', 'MU'];
+      let successCount = 0;
+      let activeSource = "";
+
+      for (const t of tickers) {
+        let quote = null;
+        if (apiKey) {
+          quote = await fetchFinnhubWithKey(t, apiKey);
         }
-
-        // 3. 檢查目標價是否超越重壓區
-        if (target > db.peakResist) {
-          score -= 8;
-          notes.push(`【技術面｜${db.baseDate}】目標價 ($${target.toFixed(2)}) 高於 10 月波段前高 ($${db.peakResist.toFixed(2)})，需突破雙重頸線解套賣壓才能達成，建議於 $${db.resistZone[0]} 分批減碼。`);
-        } else {
-          score += 6;
-          notes.push(`【技術面｜${db.baseDate}】目標價 ($${target.toFixed(2)}) 位於前高阻力 ($${db.peakResist.toFixed(2)}) 內，空間設定合理。`);
+        if (!quote) {
+          quote = await fetchYahooZeroKey(t);
         }
+        if (!quote && manualSaved[t]) {
+          quote = manualSaved[t];
+        }
+        if (quote) {
+          liveQuotes[t] = quote;
+          successCount++;
+          activeSource = quote.sourceName;
+          document.getElementById(`man${t}`).value = quote.c; } }  const nowTime = new Date().toLocaleTimeString('zh-TW', { hour12: false }); if (successCount > 0) { const sampleDate = Object.values(liveQuotes)[0].dateStr; statusEl.textContent = `✅ 已自動更新至最新行情（最新報價交易日：${sampleDate}｜同步時間：${nowTime}｜來源：${activeSource}）`;
+        statusEl.className = "text-xs text-emerald-400 font-mono mt-1";
+        dotEl.className = "w-2.5 h-2.5 rounded-full bg-emerald-400 pulse-dot";
 
-        invalidations = [
-          `【技術面反向訊號】現價或日 K 線收盤跌破你的停損防線 $${stop.toFixed(2)}（或關鍵防線 $${db.majorSupport.toFixed(2)}），多頭承接結構宣告失敗。`,
-          `【技術面反向訊號】反彈觸及第一壓力區 $${db.resistZone[0]}–$${db.resistZone[1]} 時量能萎縮並收長上影線陰線。`,
-          `【情緒面／消息面反向訊號】美債殖利率突破 5.25% 或公司發布低於預期之財測指引導致跳空破底。`
-        ];
+        // 同步更新持倉模擬器的目前現價
+        const selectedTicker = document.getElementById('posTicker').value;
+        if (liveQuotes[selectedTicker]) {
+          document.getElementById('posCurrent').value = liveQuotes[selectedTicker].c.toFixed(2);
+        }
       } else {
-        // SHORT 做空診斷
-        if (ticker === 'MU') {
-          score += 18;
-          notes.push("【技術面｜2026-10-16】MU 處於 5 日與 10 日均線陡峭下彎之空頭主跌段，順勢放空具備高趨勢勝率。");
-        } else if (ticker === 'TSLA' && current < 356) {
-          score -= 20;
-          notes.push("【技術面｜2026-10-16】TSLA 於 $349.33 留有 $5.39 長下影線強支撐，於 $355 下方低檔追空極易遭遇猛烈軋空反彈。");
-        } else {
-          score += 6;
-          notes.push(`【技術面｜${db.baseDate}】${ticker} 處於 10 月高點回落之下降通道，於反抽頸線阻力區佈局空單符合破線回抽原則。`);
-        }
-
-        if (stop > db.majorResist) {
-          score += 10;
-          notes.push(`【技術面｜${db.baseDate}】你的停損價 ($${stop.toFixed(2)}) 設於空頭結構防守線 ($${db.majorResist.toFixed(2)}) 之上，不易被短線假突破掃損。`);
-        } else {
-          score -= 10;
-          notes.push(`【技術面｜${db.baseDate}】你的停損價 ($${stop.toFixed(2)}) 低於前波反壓高點 ($${db.majorResist.toFixed(2)})，短線反抽極易觸及停損。`);
-        }
-
-        invalidations = [
-          `【技術面反向訊號】日 K 線帶量突破你的停損價 $${stop.toFixed(2)}（或空方結構防守線 $${db.majorResist.toFixed(2)}），空頭趨勢扭轉。`,
-          `【技術面反向訊號】股價回測下方支撐區 $${db.supportZone[0]} 連續 3 日縮量不破底並出現日線 RSI 底背離。`,
-          `【消息面反向訊號】產業傳出超預期減產、報價上調或大型雲端客戶追加訂單之重大利多。`
-        ];
+        statusEl.textContent = `⚠️ 外部自動連線受阻（目前顯示 2026-10-16 歷史快照）。請於右上角「手動報價快速覆蓋器」輸入最新價格或設定 Finnhub Key。`;
+        statusEl.className = "text-xs text-amber-400 font-mono mt-1";
+        dotEl.className = "w-2.5 h-2.5 rounded-full bg-amber-400 pulse-dot";
       }
 
-      if (remRR >= 2.5) score += 8;
-      else if (remRR < 1.0) score -= 15;
-
-      score = Math.max(15, Math.min(85, score));
-      return { score, notes, invalidations };
-    }
-
-    function runPositionSimulation() {
-      const ticker = document.getElementById('posTicker').value;
-      const dir = document.getElementById('posDir').value;
-      const shares = parseFloat(document.getElementById('posShares').value);
-      const entry = parseFloat(document.getElementById('posEntry').value);
-      const current = parseFloat(document.getElementById('posCurrent').value);
-      const target = parseFloat(document.getElementById('posTarget').value);
-      const stop = parseFloat(document.getElementById('posStop').value);
-      const box = document.getElementById('sim-result-box');
-
-      // 規則 2：檢查缺漏資料
-      if (isNaN(shares) || isNaN(entry) || isNaN(current) || isNaN(target) || isNaN(stop) || shares <= 0) {
-        box.innerHTML = `
-          <div class="p-4 rounded bg-amber-950/60 border border-amber-600 text-xs text-amber-200">
-            <strong>【規則 2 缺漏資料提示】</strong>資料不足，需要我補充：請完整輸入正數的「持倉股數、平均成本價、目前現價、預計目標價、預計停損價」，系統才能進行精確風報比與勝率運算。
-          </div>
-        `;
-        return;
-      }
-
-      // 驗證多空邏輯合理性
-      if (dir === 'LONG' && (stop >= entry || target <= entry)) {
-        box.innerHTML = `
-          <div class="p-4 rounded bg-rose-950/60 border border-rose-600 text-xs text-rose-200">
-            <strong>【邏輯檢核警告】</strong>做多（Long）倉位的「預計目標價 ($${target})」必須高於「平均成本價 ($${entry})」，且「預計停損價 ($${stop})」必須低於「平均成本價 ($${entry})」。請修正數值。
-          </div>
-        `;
-        return;
-      }
-      if (dir === 'SHORT' && (stop <= entry || target >= entry)) {
-        box.innerHTML = `
-          <div class="p-4 rounded bg-rose-950/60 border border-rose-600 text-xs text-rose-200">
-            <strong>【邏輯檢核警告】</strong>做空（Short）倉位的「預計目標價 ($${target})」必須低於「平均成本價 ($${entry})」，且「預計停損價 ($${stop})」必須高於「平均成本價 ($${entry})」。請修正數值。
-          </div>
-        `;
-        return;
-      }
-
-      // 1. 計算未實現損益
-      const pnlPerShare = dir === 'LONG' ? (current - entry) : (entry - current);
-      const totalPnl = pnlPerShare * shares;
-      const pnlPct = (pnlPerShare / entry) * 100;
-
-      // 2. 計算原始風報比（以進場成本價計算）
-      const initRewardPerShare = Math.abs(target - entry);
-      const initRiskPerShare = Math.abs(entry - stop);
-      const initRR = initRewardPerShare / initRiskPerShare;
-      const initBreakEvenWinRate = (1 / (1 + initRR)) * 100;
-
-      // 3. 計算現價剩餘風報比（以目前現價計算，評估繼續抱單價值）
-      const remRewardPerShare = dir === 'LONG' ? (target - current) : (current - target);
-      const remRiskPerShare = dir === 'LONG' ? (current - stop) : (stop - current);
-      let remRR = 0;
-      let remBreakEvenWinRate = 100;
-      let remStatusText = '';
-
-      if (remRiskPerShare <= 0) {
-        remStatusText = '⚠️ 現價已觸及或超越停損價（倉位已失效）';
-      } else if (remRewardPerShare <= 0) {
-        remStatusText = '🎯 現價已達成或超越目標價（建議執行停利）';
-      } else {
-        remRR = remRewardPerShare / remRiskPerShare;
-        remBreakEvenWinRate = (1 / (1 + remRR)) * 100;
-        remStatusText = `${remRR.toFixed(2)} : 1（繼續持有需勝率 ≥ ${remBreakEvenWinRate.toFixed(1)}%）`;
-      }
-
-      // 4. 結構勝率診斷與期望值計算
-      const evalRes = evaluateStructureWinRate(ticker, dir, entry, current, target, stop, remRR);
-      const estWinProb = evalRes.score / 100;
-      const expectedValuePerShare = (estWinProb * Math.max(0, remRewardPerShare)) - ((1 - estWinProb) * Math.max(0, remRiskPerShare));
-      const totalExpectedValue = expectedValuePerShare * shares;
-
-      const pnlColor = totalPnl >= 0 ? 'text-emerald-400' : 'text-rose-400';
-      const evColor = totalExpectedValue >= 0 ? 'text-emerald-300' : 'text-rose-400';
-      const verdictBadge = (evalRes.score >= (remBreakEvenWinRate) && remRiskPerShare > 0 && remRewardPerShare > 0)
-        ? `<span class="px-2.5 py-1 rounded bg-emerald-900/80 border border-emerald-500 text-emerald-200 text-xs font-bold">✅ 正期望值倉位（結構評分 ${evalRes.score}% 高於損益兩平門檻 ${remBreakEvenWinRate.toFixed(1)}%）</span>`
-        : `<span class="px-2.5 py-1 rounded bg-rose-900/80 border border-rose-500 text-rose-200 text-xs font-bold">⚠️ 負期望值或高風險倉位（結構評分 ${evalRes.score}% 低於損益兩平門檻 ${remBreakEvenWinRate.toFixed(1)}%）</span>`;
-
-      const notesHtml = evalRes.notes.map(n => `<li class="text-xs text-gray-200 list-disc ml-4">${n}</li>`).join('');
-      const invHtml = evalRes.invalidations.map(i => `<li class="text-xs text-rose-200 list-disc ml-4">${i}</li>`).join('');
-
-      box.innerHTML = `
-        <div class="p-4 rounded-lg bg-gray-900 border border-indigo-500/50">
-          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-gray-800 pb-3 mb-4">
-            <div class="text-sm font-bold text-white">
-              【${ticker} ${dir === 'LONG' ? '做多' : '做空'} ${shares} 股】倉位量化診斷報告（基準現價：$${current.toFixed(2)}）
-            </div>
-            ${verdictBadge}
-          </div>
-
-          <!-- 核心量化指標 4 宮格 -->
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4 text-xs">
-            <div class="p-3 rounded bg-gray-950 border border-gray-800">
-              <div class="text-gray-400">目前未實現損益 (Unrealized P&L)</div>
-              <div class="text-base font-bold mt-1 ${pnlColor}">
-                ${totalPnl >= 0 ? '+' : ''}$${totalPnl.toFixed(2)} (${pnlPct >= 0 ? '+' : ''}${pnlPct.toFixed(2)}%)
-              </div>
-              <div class="text-[11px] text-gray-500 mt-1">總部位市值：$${(current * shares).toFixed(2)}</div>
-            </div>
-
-            <div class="p-3 rounded bg-gray-950 border border-gray-800">
-              <div class="text-gray-400">原始風險報酬比 (以成本 $${entry} 計)</div>
-              <div class="text-base font-bold text-white mt-1">${initRR.toFixed(2)} : 1</div>
-              <div class="text-[11px] text-gray-400 mt-1">
-                目標獲利 +$${(initRewardPerShare * shares).toFixed(0)} / 停損風險 -$${(initRiskPerShare * shares).toFixed(0)}
-              </div>
-            </div>
-
-            <div class="p-3 rounded bg-gray-950 border border-gray-800">
-              <div class="text-gray-400">現價剩餘風報比 (以現價 $${current} 計)</div>
-              <div class="text-base font-bold text-indigo-300 mt-1">${remStatusText}</div>
-              <div class="text-[11px] text-gray-400 mt-1">
-                剩餘空間 $${(remRewardPerShare * shares).toFixed(0)} / 距離停損 $${(remRiskPerShare * shares).toFixed(0)}
-              </div>
-            </div>
-
-            <div class="p-3 rounded bg-gray-950 border border-gray-800">
-              <div class="text-gray-400">技術結構勝率評分 & 數學期望值</div>
-              <div class="text-base font-bold ${evColor} mt-1">
-                結構評分 ${evalRes.score}%｜期望值 ${totalExpectedValue >= 0 ? '+' : ''}$${totalExpectedValue.toFixed(0)}
-              </div>
-              <div class="text-[11px] text-gray-400 mt-1">
-                損益兩平最低所需勝率：${initBreakEvenWinRate.toFixed(1)}%
-              </div>
-            </div>
-          </div>
-
-          <!-- 計算過程與規則 1 結構診斷 -->
-          <div class="mb-3 p-3 rounded bg-gray-950/80 border border-gray-800">
-            <div class="text-xs font-bold text-indigo-300 mb-1.5">【規則 1 & 規則 3】量化計算步驟與技術結構診斷依據：</div>
-            <ul class="space-y-1.5">
-              <li class="text-xs text-gray-300 list-disc ml-4">
-                <strong>【數學公式回溯】</strong>每股原始風險 = |$${entry.toFixed(2)} - $${stop.toFixed(2)}| = $${initRiskPerShare.toFixed(2)}；每股原始目標獲利 = |$${target.toFixed(2)} - $${entry.toFixed(2)}| = $${initRewardPerShare.toFixed(2)} → 原始風報比 = ${initRR.toFixed(2)} : 1，損益兩平勝率門檻 = 1 ÷ (1 + ${initRR.toFixed(2)}) = ${initBreakEvenWinRate.toFixed(1)}%。
-              </li>
-              ${notesHtml}
-            </ul>
-          </div>
-
-          <!-- 規則 4 該倉位失效條件 -->
-          <div class="p-3 rounded bg-rose-950/30 border border-rose-800/60">
-            <div class="text-xs font-bold text-rose-300 mb-1">【規則 4】你這筆持倉判斷會失效的條件（具體反向訊號）：</div>
-            <ul class="space-y-1">${invHtml}</ul>
-          </div>
-        </div>
-      `;
-    }
-
-    // ==================== 3. 本機多筆持倉儲存與實時監控清單 ====================
-    function saveCurrentPositionToList() {
-      const ticker = document.getElementById('posTicker').value;
-      const dir = document.getElementById('posDir').value;
-      const shares = parseFloat(document.getElementById('posShares').value);
-      const entry = parseFloat(document.getElementById('posEntry').value);
-      const current = parseFloat(document.getElementById('posCurrent').value);
-      const target = parseFloat(document.getElementById('posTarget').value);
-      const stop = parseFloat(document.getElementById('posStop').value);
-
-      if (isNaN(shares) || isNaN(entry) || isNaN(target) || isNaN(stop) || shares <= 0) {
-        runPositionSimulation();
-        return;
-      }
-
-      const saved = JSON.parse(localStorage.getItem('my_saved_positions') || '[]');
-      saved.push({ id: Date.now(), ticker, dir, shares, entry, current, target, stop });
-      localStorage.setItem('my_saved_positions', JSON.stringify(saved));
+      renderAll();
       renderSavedPositions();
       runPositionSimulation();
     }
 
-    function removeSavedPosition(id) {
-      const saved = JSON.parse(localStorage.getItem('my_saved_positions') || '[]').filter(p => p.id !== id);
-      localStorage.setItem('my_saved_positions', JSON.stringify(saved));
-      renderSavedPositions();
-    }
-
-    function clearSavedPositions() {
-      localStorage.removeItem('my_saved_positions');
-      renderSavedPositions();
-    }
-
-    function renderSavedPositions() {
-      const container = document.getElementById('saved-positions-box');
-      const saved = JSON.parse(localStorage.getItem('my_saved_positions') || '[]');
-      if (saved.length === 0) {
-        container.innerHTML = `<div class="text-xs text-gray-500">目前尚未儲存持倉清單。點擊上方「+ 儲存至我的持倉清單」即可在此長期追蹤多筆倉位。</div>`;
-        return;
-      }
-
-      const rows = saved.map(p => {
-        const liveP = (liveQuotes[p.ticker] && liveQuotes[p.ticker].c) ? liveQuotes[p.ticker].c : p.current;
-        const pnlPerShare = p.dir === 'LONG' ? (liveP - p.entry) : (p.entry - liveP);
-        const totalPnl = pnlPerShare * p.shares;
-        const pnlPct = (pnlPerShare / p.entry) * 100;
-        const initRR = Math.abs(p.target - p.entry) / Math.abs(p.entry - p.stop);
-        const beWin = (1 / (1 + initRR)) * 100;
-        const isStopped = (p.dir === 'LONG' && liveP <= p.stop) || (p.dir === 'SHORT' && liveP >= p.stop);
-
-        return `
-          <tr class="border-b border-gray-800 text-xs">
-            <td class="py-2 px-2 font-bold text-white">${p.ticker}</td>
-            <td class="py-2 px-2"><span class="px-2 py-0.5 rounded ${p.dir === 'LONG' ? 'bg-emerald-900/60 text-emerald-300' : 'bg-rose-900/60 text-rose-300'}">${p.dir === 'LONG' ? '做多' : '做空'}</span></td>
-            <td class="py-2 px-2">${p.shares}</td>
-            <td class="py-2 px-2 font-mono">$${p.entry.toFixed(2)}</td>
-            <td class="py-2 px-2 font-mono text-blue-300">$${liveP.toFixed(2)}</td>
-            <td class="py-2 px-2 font-mono text-emerald-400">$${p.target.toFixed(2)}</td>
-            <td class="py-2 px-2 font-mono text-rose-400">$${p.stop.toFixed(2)}</td>
-            <td class="py-2 px-2 font-mono font-bold ${totalPnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
-              ${totalPnl >= 0 ? '+' : ''}$${totalPnl.toFixed(1)} (${pnlPct >= 0 ? '+' : ''}${pnlPct.toFixed(1)}%)
-            </td>
-            <td class="py-2 px-2 font-mono">${initRR.toFixed(2)} : 1 (需勝率 ${beWin.toFixed(0)}%)</td>
-            <td class="py-2 px-2">${isStopped ? '<span class="text-rose-400 font-bold">❌ 觸及停損</span>' : '<span class="text-emerald-400">正常持有</span>'}</td>
-            <td class="py-2 px-2 text-right">
-              <button onclick="removeSavedPosition(${p.id})" class="text-gray-400 hover:text-rose-400 underline">刪除</button>
-            </td>
-          </tr>
-        `;
-      }).join('');
-
-      container.innerHTML = `
-        <h3 class="text-xs font-bold text-gray-300 uppercase mb-2">已儲存的持倉實時監控清單（隨 Finnhub 報價自動更新損益）</h3>
-        <div class="overflow-x-auto">
-          <table class="w-full text-left border-collapse">
-            <thead>
-              <tr class="border-b border-gray-700 text-[11px] text-gray-400">
-                <th class="py-1.5 px-2">標的</th>
-                <th class="py-1.5 px-2">方向</th>
-                <th class="py-1.5 px-2">股數</th>
-                <th class="py-1.5 px-2">成本價</th>
-                <th class="py-1.5 px-2">目前現價</th>
-                <th class="py-1.5 px-2">目標價</th>
-                <th class="py-1.5 px-2">停損價</th>
-                <th class="py-1.5 px-2">未實現損益</th>
-                <th class="py-1.5 px-2">原始 R:R / 兩平勝率</th>
-                <th class="py-1.5 px-2">狀態</th>
-                <th class="py-1.5 px-2 text-right">操作</th>
-              </tr>
-            </thead>
-            <tbody>${rows}</tbody>
-          </table>
-        </div>
-      `;
-    }
-
-    // ==================== 4. 渲染 TradingView 圖表與研究卡片 ====================
-    function loadChart(symbol) {
-      const container = document.getElementById('tv-chart-container');
-      container.innerHTML = '';
-      const script = document.createElement('script');
-      script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
-      script.async = true;
-      script.innerHTML = JSON.stringify({
-        "autosize": true, "symbol": symbol, "interval": "D", "timezone": "America/New_York",
-        "theme": "dark", "style": "1", "locale": "zh_TW", "enable_publishing": false,
-        "hide_top_toolbar": false, "save_image": false,
-        "studies": ["RSI@tv-basicstudies", "MASimple@tv-basicstudies"]
+    // 引擎 C：手動 3 秒一鍵覆蓋全站報價與日期
+    function applyManualPrices() {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const manualSaved = JSON.parse(localStorage.getItem('manual_price_override') || '{}');
+      ['NVDA', 'TSLA', 'MU'].forEach(t => {
+        const val = parseFloat(document.getElementById(`man${t}`).value); if (!isNaN(val) && val > 0) { const base = keyStructureDB[t].baseClose; const dp = ((val - base) / base) * 100; const obj = { c: val, h: val, l: val, pc: base, dp: dp, dateStr: todayStr, sourceName: `使用者手動更新報價 (${todayStr})`
+          };
+          liveQuotes[t] = obj;
+          manualSaved[t] = obj;
+        }
       });
-      container.appendChild(script);
-    }
+      localStorage.setItem('manual_price_override', JSON.stringify(manualSaved));
+      const selectedTicker = document.getElementById('posTicker').value;
+      if (liveQuotes[selectedTicker]) {
+        document.getElementById('posCurrent').value = liveQuotes[selectedTicker].c.toFixed(2);
+      }
+      document.getElementById('globalDataTimestamp').textContent = `✅ 已套用手動最新報價（資料日期已更新為：${todayStr}）`; renderAll(); renderSavedPositions(); runPositionSimulation(); }  // ==================== 3. 畫面渲染（直接覆蓋卡片標題價格與日期） ==================== function renderAll() { const analysisEl = document.getElementById('analysis-container'); const setupsEl = document.getElementById('setups-container'); analysisEl.innerHTML = ''; setupsEl.innerHTML = '';  marketAnalysis .filter(item => currentFilter === 'ALL' \vert{}\vert{} item.ticker === currentFilter) .forEach(item => { const q = liveQuotes[item.ticker]; const displayPrice = q ? q.c : item.archiveClose; const displayLow = q ? q.l : item.archiveLow; const displayDate = q ? q.dateStr : `${item.archiveDate} (歷史基準快照)`;
+          const distToS1 = (((displayPrice - item.levels.s1Val) / item.levels.s1Val) * 100).toFixed(2);
+          const distToR1 = (((item.levels.r1Val - displayPrice) / displayPrice) * 100).toFixed(2);
 
-    function renderAll() {
-      const analysisEl = document.getElementById('analysis-container');
-      const setupsEl = document.getElementById('setups-container');
-      analysisEl.innerHTML = '';
-      setupsEl.innerHTML = '';
-
-      marketAnalysis
-        .filter(item => currentFilter === 'ALL' || item.ticker === currentFilter)
-        .forEach(item => {
-          const q = liveQuotes[item.ticker];
-          let liveBadgeHtml = '';
+          let headerBadge = '';
           let alertHtml = '';
 
-          if (q && q.c) {
-            const diffPct = ((q.c - item.baseClose) / item.baseClose * 100).toFixed(2);
+          if (q) {
             const colorCls = q.dp >= 0 ? 'text-emerald-400' : 'text-rose-400';
-            liveBadgeHtml = `
-              <div class="px-3 py-1.5 rounded bg-gray-900 border border-blue-500/50 text-xs flex items-center gap-3">
-                <span class="text-blue-300 font-bold">【Finnhub 實時現價】$${q.c.toFixed(2)}</span>
-                <span class="${colorCls} font-mono">當日: ${q.dp >= 0 ? '+' : ''}${q.dp.toFixed(2)}%</span>
-                <span class="text-gray-400">較 10/16 基準: ${diffPct}%</span>
+            headerBadge = `
+              <div class="px-3 py-1.5 rounded bg-emerald-950/60 border border-emerald-500/60 text-xs flex flex-wrap items-center gap-3">
+                <span class="text-emerald-300 font-bold">【最新同步價｜${q.dateStr}】$${q.c.toFixed(2)}</span>
+                <span class="${colorCls} font-mono">漲跌: ${q.dp >= 0 ? '+' : ''}${q.dp.toFixed(2)}% (高 $${q.h.toFixed(2)} / 低 $${q.l.toFixed(2)})</span>
+                <span class="text-gray-300">來源: ${q.sourceName}</span>
               </div>
             `;
-            if (q.c < item.levels.bullStop) {
-              alertHtml = `<div class="mt-3 p-3 rounded bg-rose-950 border border-rose-500 text-xs text-rose-200 font-bold">
-                ⚠️【實時失效警報】${item.ticker} 即時現價 ($${q.c}) 已跌破多方關鍵防守價 ($${item.levels.bullStop})，觸發規則 4 看多失效條件！
-              </div>`;
-            } else if (q.c > item.levels.bearStop) {
-              alertHtml = `<div class="mt-3 p-3 rounded bg-emerald-950 border border-emerald-500 text-xs text-emerald-200 font-bold">
-                ⚠️【實時突破警報】${item.ticker} 即時現價 ($${q.c}) 已突破空方防守價 ($${item.levels.bearStop})，觸發規則 4 看空失效條件！
-              </div>`;
-            }
           } else {
-            liveBadgeHtml = `
-              <div class="px-3 py-1 rounded bg-amber-950/50 border border-amber-700/60 text-xs text-amber-300">
-                【規則 2 實時 API 狀態】資料不足，需要我補充：Finnhub API Key（目前顯示 2026-10-16 收盤基準價 $${item.baseClose}）
+            headerBadge = `
+              <div class="px-3 py-1 rounded bg-amber-950/60 border border-amber-600 text-xs text-amber-200">
+                <strong>【規則 2 標示】</strong>資料不足，需要我補充：2026-10-16 之後的最新收盤價（請於上方輸入價格或 Finnhub Key）
               </div>
             `;
           }
 
-          const pointsHtml = item.points.map(p => `
-            <li class="flex items-start gap-2 text-xs md:text-sm text-gray-200">
-              <span class="px-2 py-0.5 text-[11px] font-semibold rounded shrink-0 ${p.cls}">${p.type}｜${p.date}</span>
-              <span>${p.text}</span>
-            </li>
-          `).join('');
+          if (displayPrice < item.levels.bullStop) {
+            alertHtml = `<div class="mt-3 p-3 rounded bg-rose-950 border border-rose-500 text-xs text-rose-200 font-bold">
+              ⚠️【規則 4 實時失效警報】${item.ticker} 最新價格 ($${displayPrice.toFixed(2)}) 已跌破多方關鍵防守價 ($${item.levels.bullStop})，原看多反彈設定已失效！
+            </div>`;
+          } else if (displayPrice > item.levels.bearStop) {
+            alertHtml = `<div class="mt-3 p-3 rounded bg-emerald-950 border border-emerald-500 text-xs text-emerald-200 font-bold">
+              ⚠️【規則 4 實時突破警報】${item.ticker} 最新價格 ($${displayPrice.toFixed(2)}) 已突破空方防守價 ($${item.levels.bearStop})，原反抽看空設定已失效！
+            </div>`;
+          }
+
+          const dynamicPoints = item.points.map(p => {
+            let text = p.text;
+            if (item.ticker === 'NVDA' && p.type === '基本面') {
+              const livePE = (displayPrice / 7.91).toFixed(2);
+              text = `以最新價格 $${displayPrice.toFixed(2)} 與 TTM EPS $7.91 實時換算，目前動態滾動本益比（P/E）為 ${livePE} 倍（10/16 基準為 27.07 倍）。`;
+            }
+            return `
+              <li class="flex items-start gap-2 text-xs md:text-sm text-gray-200">
+                <span class="px-2 py-0.5 text-[11px] font-semibold rounded shrink-0 ${p.cls}">${p.type}｜${q ? q.dateStr : p.date}</span>
+                <span>${text}</span>
+              </li>
+            `;
+          }).join('');
 
           const invHtml = item.invalidations.map(inv => `<li class="text-xs text-rose-200 list-disc ml-4">${inv}</li>`).join('');
 
@@ -764,131 +472,15 @@
             <div class="card rounded-lg p-5 shadow-lg">
               <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-gray-800 pb-3 mb-4">
                 <div>
-                  <h3 class="text-lg font-bold text-white">${item.ticker}（${item.name}）— ${item.trendSummary}</h3>
-                  <p class="text-xs text-gray-400 mt-0.5">基準收盤價：$${item.baseClose}（盤中低點 $${item.baseLow}｜資料日期：${item.baseDate}）</p>
+                  <h3 class="text-lg font-bold text-white">${item.ticker}（${item.name}）— 最新報價：$${displayPrice.toFixed(2)}</h3>
+                  <p class="text-xs text-blue-300 font-mono mt-0.5">
+                    資料日期：${displayDate}｜當日低點：$${displayLow.toFixed(2)}｜距下方 S1 支撐：${distToS1}\%｜距上方 R1 壓力：${distToR1}%
+                  </p>
                 </div>
-                ${liveBadgeHtml}
+                ${headerBadge}
               </div>
               ${alertHtml}
               <div class="grid grid-cols-1 md:grid-cols-4 gap-3 my-4 text-xs">
                 <div class="p-3 rounded bg-gray-900 border border-gray-800"><div class="text-rose-400 font-bold mb-1">上方第二道壓力 (R2)</div><div class="text-gray-200">${item.levels.r2}</div></div>
                 <div class="p-3 rounded bg-gray-900 border border-gray-800"><div class="text-rose-300 font-bold mb-1">上方第一道壓力 (R1)</div><div class="text-gray-200">${item.levels.r1}</div></div>
-                <div class="p-3 rounded bg-gray-900 border border-gray-800"><div class="text-emerald-300 font-bold mb-1">下方第一道支撐 (S1)</div><div class="text-gray-200">${item.levels.s1}</div></div>
-                <div class="p-3 rounded bg-gray-900 border border-gray-800"><div class="text-emerald-400 font-bold mb-1">下方第二道強支撐 (S2)</div><div class="text-gray-200">${item.levels.s2}</div></div>
-              </div>
-              <div class="mb-4">
-                <div class="text-xs font-bold text-gray-400 uppercase mb-2">【規則 1】技術面／基本面／消息面／情緒面判斷與引用日期</div>
-                <ul class="space-y-2">${pointsHtml}</ul>
-              </div>
-              <div class="mt-3 p-2.5 rounded bg-amber-950/40 border border-amber-700/60 text-xs text-amber-200">
-                <strong>【規則 2 缺漏資料標示】</strong>資料不足，需要我補充：${item.missingData}
-              </div>
-              <div class="mt-2 p-2.5 rounded bg-gray-900/70 border border-gray-800 text-xs text-gray-400">
-                <strong class="text-gray-300">【規則 3 數據來源回溯】</strong>${item.source}
-              </div>
-              <div class="mt-3 p-3.5 rounded bg-rose-950/30 border border-rose-800/60">
-                <div class="text-xs font-bold text-rose-300 mb-1">【規則 4】這個判斷會失效的條件（具體反向訊號）：</div>
-                <ul class="space-y-1">${invHtml}</ul>
-              </div>
-            </div>
-          `;
-        });
-
-      tradeSetups
-        .filter(s => currentFilter === 'ALL' || s.ticker === currentFilter)
-        .sort((a, b) => b.rrSort - a.rrSort)
-        .forEach(s => {
-          const badgeCls = s.direction === '做多' ? 'bg-emerald-900/60 text-emerald-300 border-emerald-600' : 'bg-rose-900/60 text-rose-300 border-rose-600';
-          setupsEl.innerHTML += `
-            <div class="card rounded-lg p-4 flex flex-col justify-between">
-              <div>
-                <div class="flex items-center justify-between border-b border-gray-800 pb-2.5 mb-3">
-                  <div class="flex items-center gap-2">
-                    <span class="px-2 py-0.5 text-xs font-mono rounded bg-gray-800 text-gray-300">R:R 排名 #${s.rank}</span>
-                    <h4 class="font-bold text-white text-base">${s.ticker} — ${s.strategy}</h4>
-                  </div>
-                  <span class="px-2.5 py-0.5 text-xs font-bold rounded border ${badgeCls}">${s.direction}</span>
-                </div>
-                <div class="grid grid-cols-2 gap-2 text-xs mb-3">
-                  <div class="p-2.5 rounded bg-gray-900 border border-gray-800"><div class="text-gray-400">建議進場區間</div><div class="text-white font-semibold mt-0.5">$${s.entryMin} – $${s.entryMax}</div></div>
-                  <div class="p-2.5 rounded bg-gray-900 border border-gray-800"><div class="text-gray-400">停損位置</div><div class="text-rose-400 font-semibold mt-0.5">$${s.stop}</div></div>
-                  <div class="p-2.5 rounded bg-gray-900 border border-gray-800"><div class="text-gray-400">第一目標 (T1)</div><div class="text-emerald-400 font-semibold mt-0.5">$${s.t1}（${s.rr1}）</div></div>
-                  <div class="p-2.5 rounded bg-gray-900 border border-gray-800"><div class="text-gray-400">第二目標 (T2)</div><div class="text-emerald-300 font-semibold mt-0.5">$${s.t2}（${s.rr2}）</div></div>
-                </div>
-              </div>
-              <div class="text-[11px] text-gray-400 border-t border-gray-800 pt-2">
-                <strong>停損依據：</strong>${s.stopReason}
-              </div>
-            </div>
-          `;
-        });
-    }
-
-    async function fetchAllLiveData() {
-      const apiKey = localStorage.getItem('finnhub_api_key');
-      const statusEl = document.getElementById('syncStatus');
-      if (!apiKey) {
-        statusEl.textContent = '狀態：未設定 API Key（使用 2026-10-16 基準數據）';
-        renderAll();
-        renderSavedPositions();
-        return;
-      }
-
-      statusEl.textContent = '狀態：正在同步實時報價...';
-      const tickers = ['NVDA', 'TSLA', 'MU'];
-      try {
-        for (const t of tickers) {
-          const quoteRes = await fetch(`https://finnhub.io/api/v1/quote?symbol=${t}&token=${apiKey}`);
-          if (quoteRes.ok) {
-            const qData = await quoteRes.json();
-            if (qData && qData.c) liveQuotes[t] = qData;
-          }
-        }
-        const selectedTicker = document.getElementById('posTicker').value;
-        if (liveQuotes[selectedTicker] && liveQuotes[selectedTicker].c) {
-          document.getElementById('posCurrent').value = liveQuotes[selectedTicker].c;
-        }
-        const nowStr = new Date().toLocaleTimeString('zh-TW', { hour12: false });
-        statusEl.textContent = `狀態：實時同步成功 (${nowStr})`;
-        statusEl.className = 'text-[11px] text-emerald-400 font-mono';
-      } catch (err) {
-        statusEl.textContent = '狀態：API 連線異常';
-        statusEl.className = 'text-[11px] text-rose-400 font-mono';
-      }
-      renderAll();
-      renderSavedPositions();
-      runPositionSimulation();
-    }
-
-    function saveApiKeyAndFetch() {
-      const val = document.getElementById('apiKeyInput').value.trim();
-      if (val) {
-        localStorage.setItem('finnhub_api_key', val);
-        fetchAllLiveData();
-        if (refreshTimer) clearInterval(refreshTimer);
-        refreshTimer = setInterval(fetchAllLiveData, 30000);
-      }
-    }
-
-    function setFilter(ticker) {
-      currentFilter = ticker;
-      renderAll();
-      if (ticker !== 'ALL') loadChart(`NASDAQ:${ticker}`);
-    }
-
-    window.addEventListener('DOMContentLoaded', () => {
-      const savedKey = localStorage.getItem('finnhub_api_key');
-      if (savedKey) {
-        document.getElementById('apiKeyInput').value = savedKey;
-        fetchAllLiveData();
-        refreshTimer = setInterval(fetchAllLiveData, 30000);
-      } else {
-        renderAll();
-        renderSavedPositions();
-        runPositionSimulation();
-      }
-      loadChart('NASDAQ:NVDA');
-    });
-  </script>
-</body>
-</html>
+                <div class="p-3 rounded bg-gray-900 border border-gray-800"><div class
