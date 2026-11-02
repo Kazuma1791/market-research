@@ -1,0 +1,45 @@
+name: Daily Stock Data Update
+
+on:
+  schedule:
+    # 每個美股交易日（週一至週五）收盤後執行
+    # UTC 時間 21:30（對應美東冬令時間 16:30 / 台北香港時間次日 05:30）
+    - cron: '30 21 * * 1-5'
+  workflow_dispatch: # 支援在 GitHub 網頁手動點擊執行
+
+permissions:
+  contents: write
+
+jobs:
+  update-stock-data:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 檢出儲存庫代碼 (Checkout)
+        uses: actions/checkout@v4
+
+      - name: 設定 Python 執行環境
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: 安裝所需套件
+        run: |
+          python -m pip install --upgrade pip
+          pip install yfinance requests pandas
+
+      - name: 執行最新行情抓取與資料更新腳本
+        run: |
+          python update_data.py
+
+      - name: 檢查並提交更新至儲存庫 (Commit and Push)
+        run: |
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git add data.json
+          if git diff --staged --quiet; then
+            echo "今日行情資料無變動，無需提交。"
+          else
+            git commit -m "chore: 自動更新收盤行情資料 ($(date +'%Y-%m-%d %H:%M:%S UTC'))"
+            git push
+          fi
