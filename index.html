@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>市場研究實戰終端 | NVDA · TSLA · MU · INTC · GOOG</title>
+  <title>市場研究實戰終端 (含多空勝率量化分析) | NVDA · TSLA · MU · INTC · GOOG</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     body { background-color: #090d16; color: #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
@@ -18,7 +18,7 @@
 </head>
 <body class="min-h-screen p-4 md:p-6">
 
-  <!-- 頂部 TradingView 實時報價跑馬燈 -->
+  <!-- 頂部 TradingView 實時跑馬燈 -->
   <div class="max-w-7xl mx-auto mb-4 rounded overflow-hidden border border-gray-800">
     <div class="tradingview-widget-container">
       <div class="tradingview-widget-container__widget"></div>
@@ -47,10 +47,10 @@
       <div>
         <div class="flex items-center gap-2">
           <span id="statusDot" class="w-2.5 h-2.5 rounded-full bg-amber-400 pulse-dot"></span>
-          <h1 class="text-xl md:text-2xl font-bold text-white">個人市場研究終端（5 檔核心標的監控）</h1>
+          <h1 class="text-xl md:text-2xl font-bold text-white">市場研究實戰終端（含多空勝率量化分析模組）</h1>
         </div>
         <p id="globalDataTimestamp" class="text-xs text-emerald-400 font-mono mt-1">
-          正在讀取本機 data.json 行情資料...
+          正在讀取 data.json 或備援行情資料...
         </p>
       </div>
 
@@ -69,11 +69,11 @@
     <!-- 備援輸入與 API 設定 -->
     <div class="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-3">
       <div class="p-3 rounded bg-gray-900 border border-gray-800 text-xs">
-        <div class="font-bold text-blue-400 mb-1">【數據源優先層級】</div>
+        <div class="font-bold text-blue-400 mb-1">【數據源層級與公式說明】</div>
         <p class="text-gray-400">
-          1. 優先讀取儲存庫產生的 <code>data.json</code>（GitHub Actions 自動更新）<br>
-          2. 次選讀取 Yahoo Finance 免金鑰代理服務<br>
-          3. 選填 Finnhub API Key 進行實時外電與現價輔助
+          • 兩平勝率公式：$W_{\text{BE}} = 1 / (1 + \text{R:R}) \times 100\%$<br>
+          • 期望值公式：$\text{EV} = (P_{\text{結構}} \times \text{獲利}) - ((1 - P_{\text{結構}}) \times \text{風險})$<br>
+          • 優先讀取儲存庫每日由 GitHub Actions 產生的 <code>data.json</code>
         </p>
         <div class="flex items-center gap-2 mt-2">
           <input id="apiKeyInput" type="password" placeholder="選填：Finnhub API Key..." class="px-2.5 py-1 text-xs rounded bg-gray-950 border border-gray-700 text-white flex-1" />
@@ -97,20 +97,36 @@
     <!-- 規則聲明 -->
     <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
       <div class="p-2 rounded bg-gray-900/70 border border-gray-800 text-gray-300">
-        <span class="font-bold text-amber-400">【規則 6 免責聲明】</span>本終端提供研究整理與數據運算，非投資建議，最終決策由投資人自負盈虧。
+        <span class="font-bold text-amber-400">【規則 6 免責聲明】</span>本終端提供研究整理與量化運算，非投資建議，最終決策由投資人自負盈虧。
       </div>
       <div class="p-2 rounded bg-gray-900/70 border border-gray-800 text-gray-300">
-        <span class="font-bold text-blue-400">【規則 3 來源回溯】</span>關鍵支撐阻力由近期官方財報與收盤行情結構量化衍生；動態數據取自 data.json 與公開 API。
+        <span class="font-bold text-blue-400">【規則 3 來源回溯】</span>關鍵支撐阻力回溯自近期官方財報與收盤行情結構；現價連線 data.json 與公開 API。
       </div>
     </div>
   </header>
 
-  <!-- 個人持倉輸入與勝率／風報比量化模擬器 -->
+  <!-- ==================== 多空勝率量化分析總覽模組 ==================== -->
   <section class="max-w-7xl mx-auto mb-8 card rounded-lg p-5 border-2 border-indigo-500/40 shadow-xl">
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-gray-800 pb-3 mb-4">
+      <div>
+        <h2 class="text-base md:text-lg font-bold text-white flex items-center gap-2">
+          <span class="px-2 py-0.5 text-xs rounded bg-indigo-600 text-white">量化核心</span>
+          全標的做多 vs 做空量化勝率評分與數學期望值矩陣
+        </h2>
+        <p class="text-xs text-gray-400 mt-1">
+          系統依據當前最新現價、關鍵支撐阻力結構、均線位階，同步計算各標的在多方與空方情境下的「損益兩平最低勝率門檻」、「技術結構評分」與「每股數學期望值 (EV)」。
+        </p>
+      </div>
+    </div>
+    <div id="winrate-matrix-container" class="overflow-x-auto"></div>
+  </section>
+
+  <!-- 個人持倉輸入與勝率／風報比量化模擬器 -->
+  <section class="max-w-7xl mx-auto mb-8 card rounded-lg p-5 border border-gray-800 shadow-xl">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-gray-800 pb-3 mb-4">
       <h2 class="text-base md:text-lg font-bold text-white flex items-center gap-2">
-        <span class="px-2 py-0.5 text-xs rounded bg-indigo-600 text-white">量化工具</span>
-        個人持倉勝率與風報比模擬器
+        <span class="px-2 py-0.5 text-xs rounded bg-blue-600 text-white">持倉試算</span>
+        個人持倉勝率、風報比與期望值動態診斷
       </h2>
       <div class="flex flex-wrap gap-1.5 text-xs">
         <button onclick="loadSamplePosition('NVDA')" class="px-2 py-1 rounded bg-gray-800 text-blue-300">NVDA 範例</button>
@@ -145,7 +161,7 @@
       </div>
       <div>
         <label class="block text-gray-400 mb-1">平均成本價 ($)</label>
-        <input id="posEntry" type="number" step="0.01" value="214.50" class="w-full px-2.5 py-2 rounded bg-gray-900 border border-gray-700 text-white" />
+        <input id="posEntry" type="number" step="0.01" value="203.00" class="w-full px-2.5 py-2 rounded bg-gray-900 border border-gray-700 text-white" />
       </div>
       <div>
         <label class="block text-gray-400 mb-1">最新現價 ($)</label>
@@ -157,12 +173,12 @@
       </div>
       <div>
         <label class="block text-gray-400 mb-1">停損價 ($)</label>
-        <input id="posStop" type="number" step="0.01" value="200.00" class="w-full px-2.5 py-2 rounded bg-gray-900 border border-rose-700 text-rose-300" />
+        <input id="posStop" type="number" step="0.01" value="198.50" class="w-full px-2.5 py-2 rounded bg-gray-900 border border-rose-700 text-rose-300" />
       </div>
     </div>
 
     <div class="flex flex-wrap items-center gap-3 mb-4">
-      <button onclick="runPositionSimulation()" class="px-4 py-2 text-xs font-bold rounded bg-indigo-600 hover:bg-indigo-500 text-white">計算勝率與風報比</button>
+      <button onclick="runPositionSimulation()" class="px-4 py-2 text-xs font-bold rounded bg-indigo-600 hover:bg-indigo-500 text-white">立即計算勝率與期望值</button>
       <button onclick="saveCurrentPositionToList()" class="px-4 py-2 text-xs font-semibold rounded bg-emerald-700 hover:bg-emerald-600 text-white">+ 儲存至持倉清單</button>
       <button onclick="clearSavedPositions()" class="px-3 py-2 text-xs rounded bg-gray-800 hover:bg-gray-700 text-gray-400">清空清單</button>
     </div>
@@ -203,13 +219,13 @@
   </section>
 
   <script>
-    // ==================== 1. 結構資料庫 ====================
+    // ==================== 1. 結構與模型資料庫 ====================
     const keyStructureDB = {
-      NVDA: { name: "英偉達", baseClose: 205.25, baseDate: "2026-11-01", supportZone: [200.00, 205.00], majorSupport: 200.00, peakResist: 239.24, resistZone: [224.50, 227.00], majorResist: 230.86 },
-      TSLA: { name: "特斯拉", baseClose: 354.72, baseDate: "2026-11-01", supportZone: [349.33, 354.11], majorSupport: 346.00, peakResist: 385.50, resistZone: [375.23, 378.03], majorResist: 382.70 },
-      MU:   { name: "美光科技", baseClose: 889.17, baseDate: "2026-11-01", supportZone: [875.00, 880.00], majorSupport: 862.00, peakResist: 965.00, resistZone: [925.00, 945.00], majorResist: 953.19 },
-      INTC: { name: "英特爾", baseClose: 64.89, baseDate: "2026-11-01", supportZone: [63.20, 64.50], majorSupport: 60.00, peakResist: 74.50, resistZone: [69.80, 71.00], majorResist: 74.50 },
-      GOOG: { name: "Alphabet", baseClose: 278.22, baseDate: "2026-11-01", supportZone: [270.00, 275.00], majorSupport: 268.00, peakResist: 310.00, resistZone: [294.00, 298.00], majorResist: 310.00 }
+      NVDA: { name: "英偉達", baseClose: 205.25, baseDate: "2026-11-01", supportZone: [200.00, 205.00], majorSupport: 200.00, peakResist: 239.24, resistZone: [224.50, 227.00], majorResist: 230.86, mainTrend: "回測夏季平台強支撐，跌深進入超賣區" },
+      TSLA: { name: "特斯拉", baseClose: 354.72, baseDate: "2026-11-01", supportZone: [349.33, 354.11], majorSupport: 346.00, peakResist: 385.50, resistZone: [375.23, 378.03], majorResist: 382.70, mainTrend: "350 整數防線長下影線支撐，維持偏多震盪" },
+      MU:   { name: "美光科技", baseClose: 889.17, baseDate: "2026-11-01", supportZone: [875.00, 880.00], majorSupport: 862.00, peakResist: 965.00, resistZone: [925.00, 945.00], majorResist: 953.19, mainTrend: "單邊破位後橫盤築底，均線偏空排列" },
+      INTC: { name: "英特爾", baseClose: 64.89, baseDate: "2026-11-01", supportZone: [63.20, 64.50], majorSupport: 60.00, peakResist: 74.50, resistZone: [69.80, 71.00], majorResist: 74.50, mainTrend: "財報利多出盡回測 63.20 突破支撐帶" },
+      GOOG: { name: "Alphabet", baseClose: 278.22, baseDate: "2026-11-01", supportZone: [270.00, 275.00], majorSupport: 268.00, peakResist: 310.00, resistZone: [294.00, 298.00], majorResist: 310.00, mainTrend: "認列投資虧損引發估值回修，回測 270 關卡" }
     };
 
     const marketAnalysis = [
@@ -301,7 +317,118 @@
     let liveQuotes = {};
     let currentFilter = 'ALL';
 
-    // ==================== 2. 自動讀取 data.json 與行情邏輯 ====================
+    // ==================== 2. 多空勝率與期望值量化計算引擎 ====================
+    function calculateSetupMetrics(ticker, dir, curPrice, customTarget, customStop) {
+      const db = keyStructureDB[ticker];
+      let target = customTarget;
+      let stop = customStop;
+
+      if (!target || !stop) {
+        if (dir === 'LONG') {
+          target = db.resistZone[0];
+          stop = db.majorSupport * 0.99;
+        } else {
+          target = db.supportZone[0];
+          stop = db.majorResist * 1.01;
+        }
+      }
+
+      const reward = dir === 'LONG' ? Math.max(0, target - curPrice) : Math.max(0, curPrice - target);
+      const risk = dir === 'LONG' ? Math.max(0.1, curPrice - stop) : Math.max(0.1, stop - curPrice);
+      const rr = reward / risk;
+      const beWinRate = (1 / (1 + rr)) * 100;
+
+      // 技術結構勝率評分（基準 50%）
+      let structScore = 50;
+      if (dir === 'LONG') {
+        if (curPrice <= db.supportZone[1] * 1.02 && curPrice >= db.majorSupport) structScore += 14;
+        if (stop < db.majorSupport) structScore += 8;
+        if (ticker === 'MU') structScore -= 18; // 均線空頭下行逆勢扣分
+        if (ticker === 'NVDA' || ticker === 'INTC') structScore += 8; // 支撐重疊
+      } else {
+        if (curPrice >= db.resistZone[0] * 0.98) structScore += 12;
+        if (ticker === 'MU') structScore += 16; // 順應空頭主跌段
+        if (ticker === 'TSLA' && curPrice <= 355) structScore -= 16; // 強支撐低檔追空扣分
+      }
+      structScore = Math.max(15, Math.min(85, structScore));
+
+      const pWin = structScore / 100;
+      const evPerShare = (pWin * reward) - ((1 - pWin) * risk);
+
+      return { target, stop, reward, risk, rr, beWinRate, structScore, evPerShare };
+    }
+
+    function renderWinRateMatrix() {
+      const container = document.getElementById('winrate-matrix-container');
+      const tickers = ["NVDA", "TSLA", "MU", "INTC", "GOOG"];
+
+      const rows = tickers.map(t => {
+        const curP = liveQuotes[t] ? liveQuotes[t].c : keyStructureDB[t].baseClose;
+        const longM = calculateSetupMetrics(t, 'LONG', curP);
+        const shortM = calculateSetupMetrics(t, 'SHORT', curP);
+
+        const longEvCls = longM.evPerShare >= 0 ? 'text-emerald-400 font-bold' : 'text-rose-400';
+        const shortEvCls = shortM.evPerShare >= 0 ? 'text-emerald-400 font-bold' : 'text-rose-400';
+
+        const longAdv = longM.structScore >= longM.beWinRate;
+        const shortAdv = shortM.structScore >= shortM.beWinRate;
+
+        return `
+          <tr class="border-b border-gray-800 text-xs hover:bg-gray-900/50">
+            <td class="py-2.5 px-3 font-bold text-white">${t}</td>
+            <td class="py-2.5 px-2 font-mono text-blue-300 font-bold">$${curP.toFixed(2)}</td>
+            
+            <!-- 做多數據欄 -->
+            <td class="py-2.5 px-3 bg-emerald-950/20 border-l border-gray-800">
+              <span class="font-mono text-emerald-300 font-bold">${longM.structScore}%</span>
+              <span class="text-[11px] text-gray-400">(兩平需 ${longM.beWinRate.toFixed(1)}%)</span>
+            </td>
+            <td class="py-2.5 px-2 bg-emerald-950/20 font-mono text-gray-200">${longM.rr.toFixed(2)}:1</td>
+            <td class="py-2.5 px-2 bg-emerald-950/20 font-mono ${longEvCls}">
+              ${longM.evPerShare >= 0 ? '+' : ''}$${longM.evPerShare.toFixed(2)}
+            </td>
+            <td class="py-2.5 px-2 bg-emerald-950/20">
+              ${longAdv ? '<span class="px-1.5 py-0.5 rounded bg-emerald-900/80 text-emerald-300 text-[10px] font-bold">正期望優勢</span>' : '<span class="text-gray-500 text-[10px]">勝率不足</span>'}
+            </td>
+
+            <!-- 做空數據欄 -->
+            <td class="py-2.5 px-3 bg-rose-950/20 border-l border-gray-800">
+              <span class="font-mono text-rose-300 font-bold">${shortM.structScore}%</span>
+              <span class="text-[11px] text-gray-400">(兩平需 ${shortM.beWinRate.toFixed(1)}%)</span>
+            </td>
+            <td class="py-2.5 px-2 bg-rose-950/20 font-mono text-gray-200">${shortM.rr.toFixed(2)}:1</td>
+            <td class="py-2.5 px-2 bg-rose-950/20 font-mono ${shortEvCls}">
+              ${shortM.evPerShare >= 0 ? '+' : ''}$${shortM.evPerShare.toFixed(2)}
+            </td>
+            <td class="py-2.5 px-2 bg-rose-950/20">
+              ${shortAdv ? '<span class="px-1.5 py-0.5 rounded bg-rose-900/80 text-rose-300 text-[10px] font-bold">正期望優勢</span>' : '<span class="text-gray-500 text-[10px]">勝率不足</span>'}
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      container.innerHTML = `
+        <table class="w-full text-left border-collapse min-w-[700px]">
+          <thead>
+            <tr class="border-b border-gray-700 text-[11px] text-gray-400 uppercase bg-gray-950">
+              <th class="py-2 px-3">標的</th>
+              <th class="py-2 px-2">現價</th>
+              <th class="py-2 px-3 bg-emerald-950/40 border-l border-gray-800 text-emerald-300">做多評分 (兩平門檻)</th>
+              <th class="py-2 px-2 bg-emerald-950/40 text-emerald-300">做多 R:R</th>
+              <th class="py-2 px-2 bg-emerald-950/40 text-emerald-300">每股期望值 (EV)</th>
+              <th class="py-2 px-2 bg-emerald-950/40 text-emerald-300">多方優勢</th>
+              <th class="py-2 px-3 bg-rose-950/40 border-l border-gray-800 text-rose-300">做空評分 (兩平門檻)</th>
+              <th class="py-2 px-2 bg-rose-950/40 text-rose-300">做空 R:R</th>
+              <th class="py-2 px-2 bg-rose-950/40 text-rose-300">每股期望值 (EV)</th>
+              <th class="py-2 px-2 bg-rose-950/40 text-rose-300">空方優勢</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      `;
+    }
+
+    // ==================== 3. 自動讀取 data.json 與行情邏輯 ====================
     async function fetchLocalDataJson() {
       try {
         const res = await fetch('./data.json?t=' + Date.now(), { cache: "no-store" });
@@ -343,7 +470,7 @@
     async function autoSyncMarketData() {
       const statusEl = document.getElementById('globalDataTimestamp');
       const dotEl = document.getElementById('statusDot');
-      statusEl.textContent = "正在自動同步 NVDA / TSLA / MU / INTC / GOOG 最新行情...";
+      statusEl.textContent = "正在同步 NVDA / TSLA / MU / INTC / GOOG 最新行情與量化勝率...";
 
       const localQuotes = await fetchLocalDataJson();
       const tickers = ["NVDA", "TSLA", "MU", "INTC", "GOOG"];
@@ -361,7 +488,6 @@
         }
       }
 
-      // 若 localQuotes 未抓滿 5 檔，嘗試 Yahoo 代理
       for (const t of tickers) {
         if (!liveQuotes[t]) {
           const fb = await fetchYahooFallback(t);
@@ -386,6 +512,7 @@
       }
 
       onTickerChange();
+      renderWinRateMatrix();
       renderAll();
       renderSavedPositions();
       runPositionSimulation();
@@ -405,12 +532,13 @@
       });
       document.getElementById('globalDataTimestamp').textContent = `✅ 已套用手動更新報價 (${todayStr})`;
       onTickerChange();
+      renderWinRateMatrix();
       renderAll();
       renderSavedPositions();
       runPositionSimulation();
     }
 
-    // ==================== 3. 畫面渲染 ====================
+    // ==================== 4. 畫面渲染 ====================
     function renderAll() {
       const analysisEl = document.getElementById('analysis-container');
       const setupsEl = document.getElementById('setups-container');
@@ -509,7 +637,7 @@
         });
     }
 
-    // ==================== 4. 倉位模擬器 ====================
+    // ==================== 5. 倉位模擬器邏輯 ====================
     function onTickerChange() {
       const t = document.getElementById('posTicker').value;
       const liveP = liveQuotes[t] && liveQuotes[t].c ? liveQuotes[t].c : keyStructureDB[t].baseClose;
@@ -557,20 +685,30 @@
       const pnlPerShare = dir === 'LONG' ? (current - entry) : (entry - current);
       const totalPnl = pnlPerShare * shares;
       const pnlPct = (pnlPerShare / entry) * 100;
-      const initRR = Math.abs(target - entry) / Math.abs(entry - stop);
+      const initReward = Math.abs(target - entry);
+      const initRisk = Math.abs(entry - stop);
+      const initRR = initReward / initRisk;
       const beWinRate = (1 / (1 + initRR)) * 100;
 
       const remReward = dir === 'LONG' ? (target - current) : (current - target);
       const remRisk = dir === 'LONG' ? (current - stop) : (stop - current);
       const remRR = (remRisk > 0 && remReward > 0) ? (remReward / remRisk) : 0;
+      const remBeWin = remRR > 0 ? (1 / (1 + remRR)) * 100 : 100;
+
+      const metrics = calculateSetupMetrics(ticker, dir, current, target, stop);
+      const totalEV = metrics.evPerShare * shares;
 
       box.innerHTML = `
         <div class="p-4 rounded bg-gray-900 border border-indigo-500/50 text-xs">
           <div class="font-bold text-white mb-2">
-            【${ticker} ${dir === 'LONG' ? '做多' : '做空'} ${shares} 股】損益：
+            【${ticker} ${dir === 'LONG' ? '做多' : '做空'} ${shares} 股】未實現損益：
             <span class="${totalPnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${totalPnl >= 0 ? '+' : ''}$${totalPnl.toFixed(2)} (${pnlPct.toFixed(2)}%)</span>
-            ｜原始 R:R：${initRR.toFixed(2)} : 1 (兩平勝率 ${beWinRate.toFixed(1)}%)
-            ｜現價剩餘 R:R：${remRR > 0 ? remRR.toFixed(2) + ' : 1' : '已觸及目標或停損'}
+            ｜原始 R:R：${initRR.toFixed(2)}:1（損益兩平最低勝率：${beWinRate.toFixed(1)}%）
+            ｜技術結構評分：<span class="text-indigo-300 font-bold">${metrics.structScore}%</span>
+            ｜倉位總期望值 (EV)：<span class="${totalEV >= 0 ? 'text-emerald-400' : 'text-rose-400'} font-bold">${totalEV >= 0 ? '+' : ''}$${totalEV.toFixed(1)}</span>
+          </div>
+          <div class="text-gray-400 mb-1">
+            <strong>現價剩餘風報比：</strong>${remRR > 0 ? remRR.toFixed(2) + ':1（繼續抱單所需最低勝率 ' + remBeWin.toFixed(1) + '%）' : '已觸及目標或停損'}
           </div>
           <div class="text-rose-300">
             <strong>【規則 4 倉位失效條件】</strong>現價觸及停損價 $${stop.toFixed(2)} 或收盤跌破結構防守位時，本筆設定即刻失效。
