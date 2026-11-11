@@ -1,50 +1,50 @@
 {
-  "updated_at": "2026-11-10 03:43:44 UTC",
+  "updated_at": "2026-11-11 01:24:03 UTC",
   "quotes": {
     "NVDA": {
-      "c": 178.67,
-      "h": 179.92,
-      "l": 170.24,
-      "pc": 186.64,
-      "dp": -4.27,
-      "dateStr": "2026-11-09",
-      "sourceName": "Yahoo Finance 每日排程抓取 (2026-11-09)"
+      "c": NaN,
+      "h": NaN,
+      "l": NaN,
+      "pc": 178.67,
+      "dp": NaN,
+      "dateStr": "2026-11-10",
+      "sourceName": "Yahoo Finance 每日排程抓取 (2026-11-10)"
     },
     "TSLA": {
-      "c": 378.05,
-      "h": 382.2,
-      "l": 360.02,
-      "pc": 358.22,
-      "dp": 5.54,
-      "dateStr": "2026-11-09",
-      "sourceName": "Yahoo Finance 每日排程抓取 (2026-11-09)"
+      "c": NaN,
+      "h": NaN,
+      "l": NaN,
+      "pc": 378.05,
+      "dp": NaN,
+      "dateStr": "2026-11-10",
+      "sourceName": "Yahoo Finance 每日排程抓取 (2026-11-10)"
     },
     "MU": {
-      "c": 733.15,
-      "h": 744.74,
-      "l": 689.65,
-      "pc": 690.0,
-      "dp": 6.25,
-      "dateStr": "2026-11-09",
-      "sourceName": "Yahoo Finance 每日排程抓取 (2026-11-09)"
+      "c": NaN,
+      "h": NaN,
+      "l": NaN,
+      "pc": 733.15,
+      "dp": NaN,
+      "dateStr": "2026-11-10",
+      "sourceName": "Yahoo Finance 每日排程抓取 (2026-11-10)"
     },
     "INTC": {
-      "c": 59.37,
-      "h": 60.03,
-      "l": 55.83,
-      "pc": 56.28,
-      "dp": 5.49,
-      "dateStr": "2026-11-09",
-      "sourceName": "Yahoo Finance 每日排程抓取 (2026-11-09)"
+      "c": NaN,
+      "h": NaN,
+      "l": NaN,
+      "pc": 59.37,
+      "dp": NaN,
+      "dateStr": "2026-11-10",
+      "sourceName": "Yahoo Finance 每日排程抓取 (2026-11-10)"
     },
     "GOOG": {
-      "c": 286.01,
-      "h": 294.69,
-      "l": 285.94,
-      "pc": 283.93,
-      "dp": 0.73,
-      "dateStr": "2026-11-09",
-      "sourceName": "Yahoo Finance 每日排程抓取 (2026-11-09)"
+      "c": NaN,
+      "h": NaN,
+      "l": NaN,
+      "pc": 286.01,
+      "dp": NaN,
+      "dateStr": "2026-11-10",
+      "sourceName": "Yahoo Finance 每日排程抓取 (2026-11-10)"
     }
   }
 }
