@@ -1,50 +1,50 @@
 {
-  "updated_at": "2026-11-13 02:02:21 UTC",
+  "updated_at": "2026-11-14 01:37:03 UTC",
   "quotes": {
     "NVDA": {
-      "c": NaN,
-      "h": NaN,
-      "l": NaN,
-      "pc": 173.73,
-      "dp": NaN,
-      "dateStr": "2026-11-12",
-      "sourceName": "Yahoo Finance 每日排程抓取 (2026-11-12)"
+      "c": 162.85,
+      "h": 170.0,
+      "l": 158.39,
+      "pc": 166.19,
+      "dp": -2.01,
+      "dateStr": "2026-11-13",
+      "sourceName": "Yahoo Finance 每日排程抓取 (2026-11-13)"
     },
     "TSLA": {
-      "c": NaN,
-      "h": NaN,
-      "l": NaN,
-      "pc": 390.84,
-      "dp": NaN,
-      "dateStr": "2026-11-12",
-      "sourceName": "Yahoo Finance 每日排程抓取 (2026-11-12)"
+      "c": 390.22,
+      "h": 404.4,
+      "l": 385.83,
+      "pc": 397.45,
+      "dp": -1.82,
+      "dateStr": "2026-11-13",
+      "sourceName": "Yahoo Finance 每日排程抓取 (2026-11-13)"
     },
     "MU": {
-      "c": NaN,
-      "h": NaN,
-      "l": NaN,
-      "pc": 811.3,
-      "dp": NaN,
-      "dateStr": "2026-11-12",
-      "sourceName": "Yahoo Finance 每日排程抓取 (2026-11-12)"
+      "c": 778.31,
+      "h": 796.18,
+      "l": 750.25,
+      "pc": 798.44,
+      "dp": -2.52,
+      "dateStr": "2026-11-13",
+      "sourceName": "Yahoo Finance 每日排程抓取 (2026-11-13)"
     },
     "INTC": {
-      "c": NaN,
-      "h": NaN,
-      "l": NaN,
-      "pc": 62.5,
-      "dp": NaN,
-      "dateStr": "2026-11-12",
-      "sourceName": "Yahoo Finance 每日排程抓取 (2026-11-12)"
+      "c": 59.66,
+      "h": 61.34,
+      "l": 57.0,
+      "pc": 61.2,
+      "dp": -2.52,
+      "dateStr": "2026-11-13",
+      "sourceName": "Yahoo Finance 每日排程抓取 (2026-11-13)"
     },
     "GOOG": {
       "c": NaN,
       "h": NaN,
       "l": NaN,
-      "pc": 290.63,
+      "pc": 295.35,
       "dp": NaN,
-      "dateStr": "2026-11-12",
-      "sourceName": "Yahoo Finance 每日排程抓取 (2026-11-12)"
+      "dateStr": "2026-11-13",
+      "sourceName": "Yahoo Finance 每日排程抓取 (2026-11-13)"
     }
   }
 }
